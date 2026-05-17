@@ -1141,6 +1141,117 @@ button:hover {
     box-shadow: 0 0 20px rgba(255,215,0,1);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   RESPONSIVE MOBILE MENUS
+   Targets landscape phones (height ≤ 600px) and portrait phones (width ≤ 768px).
+   Strategy: make the sub-screen overlay itself scroll (not the panel inside),
+   and compact all grid/card layouts for small screens.
+──────────────────────────────────────────────────────────────────────────── */
+@media screen and (max-height: 600px), screen and (max-width: 768px) {
+
+    /* ── Overlay becomes the scroller ── */
+    .sub-screen {
+        align-items: flex-start;
+        justify-content: flex-start;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 10px 6px 20px;
+    }
+
+    /* ── Panels: full width, no max-height clip, less padding ── */
+    .sub-panel {
+        width: min(480px, 98vw);
+        max-height: none;
+        padding: 18px 16px;
+        margin: 0 auto;
+        border-radius: 8px;
+    }
+    .wide-panel  { width: min(720px, 98vw); }
+    .diff-panel  { width: min(860px, 98vw); }
+    .mode-panel  { width: min(720px, 98vw); }
+
+    /* ── Section titles smaller ── */
+    .sub-panel h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
+        letter-spacing: 2px;
+    }
+
+    /* ── Options: compact rows ── */
+    .opt-group {
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+    }
+    .opt-label { font-size: 12px; margin-bottom: 8px; }
+
+    /* ── Difficulty grid: 2×2 instead of 4×1 ── */
+    .diff-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 12px 0 18px;
+    }
+    .diff-card {
+        padding: 14px 10px 12px;
+    }
+    .diff-emoji { font-size: 28px; margin-bottom: 6px; }
+    .diff-name  { font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
+    .diff-desc  { font-size: 11px; min-height: 0; margin-bottom: 8px; }
+    .diff-stats { font-size: 11px; line-height: 1.6; }
+
+    /* ── Mode grid: side by side but smaller ── */
+    .mode-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 12px 0 16px;
+    }
+    .mode-card   { padding: 16px 10px 14px; }
+    .mode-emoji  { font-size: 36px; margin-bottom: 8px; }
+    .mode-name   { font-size: 14px; letter-spacing: 2px; margin-bottom: 6px; }
+    .mode-desc   { font-size: 11px; min-height: 0; margin-bottom: 10px; }
+    .mode-features { font-size: 11px; line-height: 1.7; }
+
+    /* ── Controls grid: 2 columns ── */
+    .controls-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .ctrl-item { padding: 10px 6px; }
+    .key-box   { font-size: 13px; padding: 4px 8px; min-width: 60px; }
+
+    /* ── Stats grid ── */
+    .stat-val { font-size: 32px; }
+    .stat-lbl { font-size: 11px; }
+
+    /* ── Buttons ── */
+    .btn-back   { padding: 10px; font-size: 13px; }
+    .btn-danger { padding: 8px;  font-size: 12px; }
+
+    /* ── Main menu title smaller ── */
+    #game-title    { font-size: 58px; letter-spacing: 6px; }
+    #menu-subtitle { font-size: 13px; margin-bottom: 28px; }
+    #menu-buttons  { gap: 8px; width: 280px; }
+    .menu-btn      { padding: 13px 0; font-size: 15px; }
+    .menu-btn.primary { font-size: 16px; }
+    #menu-footer   { margin-top: 22px; }
+
+    /* ── Win screen ── */
+    .win-panel   { padding: 30px 28px; gap: 12px; }
+    .win-title   { font-size: 48px; }
+    .win-subtitle{ font-size: 15px; }
+}
+
+/* Extra compact for very short landscape screens (e.g. small Android phones) */
+@media screen and (max-height: 420px) {
+    #game-title    { font-size: 44px; }
+    #menu-buttons  { gap: 6px; }
+    .menu-btn      { padding: 10px 0; font-size: 14px; }
+    .sub-panel     { padding: 14px 12px; }
+    .diff-stats, .mode-features { display: none; }
+    .mode-desc, .diff-desc      { display: none; }
+    .controls-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+
 /* ─── HEALTH PICKUP HUD INDICATOR ────────────────────────────────────────── */
 #health-pickup-hint {
     position: absolute;
