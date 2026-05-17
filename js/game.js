@@ -277,24 +277,13 @@ function handleMovement(delta) {
     if (input.keys['KeyA']) move.sub(right);
     if (input.keys['KeyD']) move.add(right);
 
-    // Virtual joystick input (mobile)
-    var ti = window.touchInput;
-    if (ti) {
-        if (Math.abs(ti.moveX) > 0.05 || Math.abs(ti.moveY) > 0.05) {
-            move.addScaledVector(forward, -ti.moveY);
-            move.addScaledVector(right,    ti.moveX);
+    // Touch movement + shoot (mobile) — look is applied directly in touchmove listener
+    if (isMobile && mobileActive) {
+        if (_tMov.x !== 0 || _tMov.y !== 0) {
+            move.addScaledVector(forward, -_tMov.y);
+            move.addScaledVector(right,    _tMov.x);
         }
-        // Touch look
-        if (window.consumeTouchLook) {
-            var look = window.consumeTouchLook();
-            if (Math.abs(look.dx) > 0 || Math.abs(look.dy) > 0) {
-                input.yaw   -= look.dx * 0.005;
-                input.pitch -= look.dy * 0.005;
-                input.pitch  = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, input.pitch));
-            }
-        }
-        // Continuous shoot while button held
-        if (ti.shooting) fireWeapon();
+        if (window.mobileShootActive) fireWeapon();
     }
 
     if (move.lengthSq() > 0) {
@@ -855,6 +844,55 @@ function takeDamage(amount) {
     else updateUI();
 }
 
+// ──────────────────────────────────────── TOUCH INPUT (directo en game.js) ───
+// Maneja joystick (izquierda) y look swipe (derecha) sin depender de scripts externos.
+var _tMov   = { x: 0, y: 0 };       // output del joystick
+var _tLId   = null, _tLSX = 0, _tLSY = 0;  // touch izquierdo
+var _tRId   = null, _tRLX = 0, _tRLY = 0;  // touch derecho
+var JOY_PX  = 72; // radio máximo del joystick en px
+
+// Estos listeners se activan siempre pero solo procesan si mobileActive
+document.addEventListener('touchstart', function (e) {
+    if (inMenu || !mobileActive) return;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.clientX < window.innerWidth * 0.5) {
+            if (_tLId === null) { _tLId = t.identifier; _tLSX = t.clientX; _tLSY = t.clientY; _tMov.x = 0; _tMov.y = 0; }
+        } else {
+            if (_tRId === null) { _tRId = t.identifier; _tRLX = t.clientX; _tRLY = t.clientY; }
+        }
+    }
+}, { passive: true });
+
+document.addEventListener('touchmove', function (e) {
+    if (inMenu || !mobileActive) return;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.identifier === _tLId) {
+            var dx = t.clientX - _tLSX, dy = t.clientY - _tLSY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 12) { _tMov.x = 0; _tMov.y = 0; }
+            else { var ang = Math.atan2(dy, dx), cl = Math.min(dist, JOY_PX); _tMov.x = Math.cos(ang) * (cl / JOY_PX); _tMov.y = Math.sin(ang) * (cl / JOY_PX); }
+        }
+        if (t.identifier === _tRId) {
+            input.yaw   -= (t.clientX - _tRLX) * 0.005;
+            input.pitch -= (t.clientY - _tRLY) * 0.005;
+            input.pitch  = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, input.pitch));
+            _tRLX = t.clientX; _tRLY = t.clientY;
+        }
+    }
+}, { passive: true });
+
+function _touchEnd(e) {
+    for (var i = 0; i < e.changedTouches.length; i++) {
+        var id = e.changedTouches[i].identifier;
+        if (id === _tLId) { _tLId = null; _tMov.x = 0; _tMov.y = 0; }
+        if (id === _tRId) { _tRId = null; }
+    }
+}
+document.addEventListener('touchend',    _touchEnd, { passive: true });
+document.addEventListener('touchcancel', _touchEnd, { passive: true });
+
 // ────────────────────────────────────────── GAME STATE MANAGER ───────────────
 var inMenu      = true;
 var gameStarted = false;
@@ -1033,12 +1071,8 @@ document.getElementById('btn-menu-from-over').onclick  = backToMainMenu;
 document.getElementById('btn-opts-pause').onclick      = function(){ state.isPaused=true; document.exitPointerLock(); hideAllSubScreens(); syncOptionsUI(); document.getElementById('options-screen').classList.remove('hidden'); document.getElementById('main-menu').style.display='none'; };
 
 // ──────────────────────────────────────────────────────────── INPUT ──────────
-document.body.addEventListener('click', function(){
-    initAudio();
-    if (!inMenu && !state.isPaused && !state.isBuying && !state.isGameOver && !isMobile) {
-        requestLock();
-    }
-});
+document.body.addEventListener('click',      function () { initAudio(); if (!inMenu && !state.isPaused && !state.isBuying && !state.isGameOver && !isMobile) requestLock(); });
+document.body.addEventListener('touchstart', function () { initAudio(); }, { passive: true });
 
 document.addEventListener('pointerlockchange', function(){
     input.isLocked = document.pointerLockElement === document.body;
