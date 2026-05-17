@@ -1,0 +1,25 @@
+{
+  "appId": "com.neonsiegegame.app",
+  "appName": "Neon Siege",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0a0a1e",
+    "overScrollMode": "never",
+    "initialFocus": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0a0a1e",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0a0a1e"
+    }
+  }
+}

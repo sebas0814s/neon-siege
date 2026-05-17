@@ -208,6 +208,7 @@ camera.position.set(0, PLAYER_HEIGHT, 5);
 scene.add(camera);
 
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // cap at 2× for mobile perf
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -269,10 +270,33 @@ function handleMovement(delta) {
     var forward = new THREE.Vector3(); camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
     var right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
     var move = new THREE.Vector3();
+
+    // Keyboard input
     if (input.keys['KeyW']) move.add(forward);
     if (input.keys['KeyS']) move.sub(forward);
     if (input.keys['KeyA']) move.sub(right);
     if (input.keys['KeyD']) move.add(right);
+
+    // Virtual joystick input (mobile)
+    var ti = window.touchInput;
+    if (ti) {
+        if (Math.abs(ti.moveX) > 0.05 || Math.abs(ti.moveY) > 0.05) {
+            move.addScaledVector(forward, -ti.moveY);
+            move.addScaledVector(right,    ti.moveX);
+        }
+        // Touch look
+        if (window.consumeTouchLook) {
+            var look = window.consumeTouchLook();
+            if (Math.abs(look.dx) > 0 || Math.abs(look.dy) > 0) {
+                input.yaw   -= look.dx * 0.005;
+                input.pitch -= look.dy * 0.005;
+                input.pitch  = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, input.pitch));
+            }
+        }
+        // Continuous shoot while button held
+        if (ti.shooting) fireWeapon();
+    }
+
     if (move.lengthSq() > 0) {
         var spd = state.starActive ? 10.5 : 6;
         move.normalize().multiplyScalar(spd * delta);
