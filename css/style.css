@@ -45,6 +45,9 @@
 #touch-ui { display: none !important; }
 #touch-ui.game-active { display: block !important; }
 
+/* Crosshair visible on mobile (pointer-events: none so it doesn't block touches) */
+#crosshair { pointer-events: none; }
+
 /* ─── RESET ─────────────────────────────────────────────────────────────── */
 :root {
     --ch-color: #00ff00;

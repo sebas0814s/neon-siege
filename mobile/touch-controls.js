@@ -22,20 +22,20 @@
             -webkit-user-select: none;
         }
 
-        /* ── Joystick visual (left bottom) ── */
+        /* ── Joystick area indicator (very subtle) ── */
         #joy-ring {
             position: absolute;
-            left: 60px;
-            bottom: 60px;
-            width: 144px;
-            height: 144px;
+            left: 44px;
+            bottom: 44px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
-            border: 2px solid rgba(0,255,200,0.25);
-            background: rgba(0,255,200,0.05);
+            border: 1.5px solid rgba(0,255,200,0.12);
+            background: rgba(0,255,200,0.03);
             pointer-events: none;
         }
 
-        /* ── Buttons ── */
+        /* ── Base button style — nearly invisible ── */
         .t-btn {
             position: absolute;
             border-radius: 50%;
@@ -46,66 +46,70 @@
             touch-action: none;
             -webkit-tap-highlight-color: transparent;
             font-weight: 900;
-            color: #fff;
+            color: rgba(255,255,255,0.75);
             font-family: sans-serif;
             cursor: pointer;
-            transition: transform 0.08s, opacity 0.08s;
-            border: 2px solid;
+            background: rgba(255,255,255,0.04);
+            border: 1.5px solid rgba(255,255,255,0.18);
+            transition: transform 0.08s, background 0.08s, border-color 0.08s;
         }
         .t-btn:active {
-            transform: scale(0.88);
-            opacity: 0.75;
+            transform: scale(0.90);
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(255,255,255,0.5);
         }
 
-        /* SHOOT — big red, right bottom */
+        /* SHOOT — slightly more visible so user can find it */
         #tb-shoot {
-            right: 28px; bottom: 40px;
-            width: 100px; height: 100px;
-            font-size: 28px;
-            background: rgba(220,40,40,0.28);
-            border-color: rgba(255,80,80,0.7);
-            box-shadow: 0 0 20px rgba(255,50,50,0.3);
+            right: 22px; bottom: 36px;
+            width: 96px; height: 96px;
+            font-size: 26px;
+            background: rgba(255,60,60,0.08);
+            border: 1.5px solid rgba(255,80,80,0.30);
+            color: rgba(255,120,120,0.85);
         }
         #tb-shoot.active {
-            background: rgba(220,40,40,0.55);
-            box-shadow: 0 0 32px rgba(255,50,50,0.6);
+            background: rgba(255,60,60,0.28);
+            border-color: rgba(255,80,80,0.65);
+            color: #fff;
         }
 
         /* RELOAD */
         #tb-reload {
-            right: 148px; bottom: 44px;
-            width: 66px; height: 66px;
-            font-size: 15px; letter-spacing: 1px;
-            background: rgba(255,200,0,0.15);
-            border-color: rgba(255,200,0,0.5);
+            right: 136px; bottom: 40px;
+            width: 62px; height: 62px;
+            font-size: 14px; letter-spacing: 1px;
+            border-color: rgba(255,200,0,0.22);
+            color: rgba(255,200,0,0.7);
         }
 
         /* DASH */
         #tb-dash {
-            right: 142px; bottom: 126px;
-            width: 66px; height: 66px;
-            font-size: 20px;
-            background: rgba(0,200,255,0.15);
-            border-color: rgba(0,200,255,0.5);
+            right: 130px; bottom: 118px;
+            width: 62px; height: 62px;
+            font-size: 18px;
+            border-color: rgba(0,200,255,0.22);
+            color: rgba(0,200,255,0.7);
         }
 
         /* JUMP */
         #tb-jump {
-            right: 230px; bottom: 56px;
-            width: 60px; height: 60px;
-            font-size: 17px;
-            background: rgba(100,255,100,0.12);
-            border-color: rgba(120,255,120,0.45);
+            right: 218px; bottom: 50px;
+            width: 56px; height: 56px;
+            font-size: 16px;
+            border-color: rgba(120,255,120,0.22);
+            color: rgba(120,255,120,0.7);
         }
 
-        /* PAUSE — top right corner, square */
+        /* PAUSE — top right, square, barely visible */
         #tb-pause {
-            top: 14px; right: 14px;
-            width: 50px; height: 50px;
-            border-radius: 10px;
-            font-size: 18px;
-            background: rgba(0,0,0,0.55);
-            border-color: rgba(255,255,255,0.2);
+            top: 12px; right: 12px;
+            width: 46px; height: 46px;
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(0,0,0,0.20);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.40);
         }
     `;
     document.head.appendChild(style);

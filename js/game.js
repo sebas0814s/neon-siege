@@ -198,7 +198,11 @@ function playGGWinSound()    { [0,150,300,500].forEach(function(d,i){ setTimeout
 
 // ──────────────────────────────────────────────────────────── SCENE ──────────
 var scene    = new THREE.Scene();
-var camera   = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+var _isMobileEarly = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+var camera   = new THREE.PerspectiveCamera(
+    _isMobileEarly ? 90 : 75,          // FOV más amplio en móvil para mejor visibilidad
+    window.innerWidth / window.innerHeight, 0.1, 200
+);
 var renderer = new THREE.WebGLRenderer({ antialias: true });
 var clock    = new THREE.Clock();
 
@@ -208,7 +212,7 @@ camera.position.set(0, PLAYER_HEIGHT, 5);
 scene.add(camera);
 
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // cap at 2× for mobile perf
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, _isMobileEarly ? 1.5 : 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -914,9 +918,9 @@ function updateTouchUI() {
         var show = isMobile && mobileActive && !inMenu && !state.isGameOver;
         tu.classList.toggle('game-active', show);
     }
-    // On mobile the crosshair is always hidden — we use touch aim
+    // Show crosshair when game is active on both desktop and mobile
     document.getElementById('crosshair').classList.toggle('hidden',
-        isMobile ? true : !input.isLocked
+        isMobile ? !mobileActive : !input.isLocked
     );
 }
 
@@ -1112,10 +1116,13 @@ document.addEventListener('mousedown', function(e){
     }
 });
 
-window.addEventListener('resize', function(){
-    camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
-});
+function _onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize',            _onResize);
+window.addEventListener('orientationchange', function () { setTimeout(_onResize, 300); });
 
 // ──────────────────────────────────────────────────────────── GAME LOOP ──────
 function animate() {
