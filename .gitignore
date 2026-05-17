@@ -1,0 +1,23 @@
+node_modules/
+.env
+.env.local
+dist/
+android/
+ios/
+*.log
+.DS_Store
+Thumbs.db
+skill_scalable-clean-code-architect.md
+SKILL.md
+
+# Unused ES module drafts (game uses js/game.js monolith)
+js/audio.js
+js/combat.js
+js/config.js
+js/enemies.js
+js/main.js
+js/pickups.js
+js/player.js
+js/scene.js
+js/state.js
+js/ui.js

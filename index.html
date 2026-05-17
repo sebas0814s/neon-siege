@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Shooter</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ MAIN MENU ═══════════════════════════════ -->
+<div id="main-menu">
+    <div id="menu-overlay"></div>
+    <div id="menu-content">
+        <div id="game-title">
+            <span class="title-3d">3D</span>SHOOTER
+        </div>
+        <div id="menu-subtitle">Wave Survival · Three.js</div>
+
+        <nav id="menu-buttons">
+            <button id="btn-play"     class="menu-btn primary">▶ &nbsp;JUGAR</button>
+            <button id="btn-continue" class="menu-btn primary hidden">⏵ &nbsp;CONTINUAR</button>
+            <button id="btn-newgame"  class="menu-btn hidden">↺ &nbsp;NUEVA PARTIDA</button>
+            <button id="btn-tutorial" class="menu-btn">? &nbsp;&nbsp;TUTORIAL</button>
+            <button id="btn-stats"    class="menu-btn">📊 ESTADÍSTICAS</button>
+            <button id="btn-options"  class="menu-btn">⚙ &nbsp;OPCIONES</button>
+        </nav>
+
+        <div id="menu-footer">v1.0 · Abre en Chrome/Edge · Clic para capturar ratón</div>
+    </div>
+</div>
+
+<!-- ════════════════════════ MODE SELECT ════════════════════════════════════ -->
+<div id="mode-screen" class="sub-screen hidden">
+    <div class="sub-panel mode-panel">
+        <h2>🎮 Modo de Juego</h2>
+        <div class="mode-grid">
+
+            <div class="mode-card" onclick="showDifficultyScreen()">
+                <div class="mode-emoji">🌊</div>
+                <div class="mode-name">OLEADAS</div>
+                <div class="mode-desc">Sobrevive oleadas infinitas de enemigos. Compra armas, acumula bajas.</div>
+                <ul class="mode-features">
+                    <li>🏪 Tienda entre oleadas</li>
+                    <li>📈 Dificultad escalable</li>
+                    <li>🩺 Botiquines</li>
+                    <li>⭐ Power-ups</li>
+                </ul>
+            </div>
+
+            <div class="mode-card gg-mode-card" onclick="startGunGameMode()">
+                <div class="mode-emoji">🔫</div>
+                <div class="mode-name" style="color:#FFD700">GUN GAME</div>
+                <div class="mode-desc">10 armas. Cada kill cambia a la siguiente. ¿Puedes ganar con la Pistola Dorada?</div>
+                <ul class="mode-features">
+                    <li>🪃 Bate → ⭐ Pistola Dorada</li>
+                    <li>🔄 10 armas en progresión</li>
+                    <li>🚀 Sin tienda — pura habilidad</li>
+                    <li>⭐ Power-ups de estrella</li>
+                </ul>
+            </div>
+
+        </div>
+        <button class="btn-back" onclick="showMainMenu()">◀ Volver</button>
+    </div>
+</div>
+
+<!-- ════════════════════════ DIFFICULTY SELECT ══════════════════════════════ -->
+<div id="difficulty-screen" class="sub-screen hidden">
+    <div class="sub-panel diff-panel">
+        <h2>⚔ Elige tu destino</h2>
+        <div class="diff-grid">
+
+            <div class="diff-card" data-diff="facil" style="--dcolor:#00ff88">
+                <div class="diff-emoji">😊</div>
+                <div class="diff-name" style="color:#00ff88">Fácil</div>
+                <div class="diff-desc">Para relajarse y explorar</div>
+                <ul class="diff-stats">
+                    <li>❤ Vida enemigos ×0.65</li>
+                    <li>💨 Velocidad ×0.70</li>
+                    <li>🩹 Drop salud 45%</li>
+                    <li>💰 $1500 iniciales</li>
+                    <li>⚔ Daño 8 / golpe</li>
+                </ul>
+            </div>
+
+            <div class="diff-card active" data-diff="medioTonto" style="--dcolor:#ffcc00">
+                <div class="diff-emoji">🤔</div>
+                <div class="diff-name" style="color:#ffcc00">Medio Tonto</div>
+                <div class="diff-desc">Experiencia estándar</div>
+                <ul class="diff-stats">
+                    <li>❤ Vida enemigos ×1.00</li>
+                    <li>💨 Velocidad ×1.00</li>
+                    <li>🩹 Drop salud 28%</li>
+                    <li>💰 $800 iniciales</li>
+                    <li>⚔ Daño 15 / golpe</li>
+                </ul>
+            </div>
+
+            <div class="diff-card" data-diff="medioLoco" style="--dcolor:#ff6600">
+                <div class="diff-emoji">😤</div>
+                <div class="diff-name" style="color:#ff6600">Medio Loco</div>
+                <div class="diff-desc">Empieza el sudor frío</div>
+                <ul class="diff-stats">
+                    <li>❤ Vida enemigos ×1.40</li>
+                    <li>💨 Velocidad ×1.30</li>
+                    <li>🩹 Drop salud 12%</li>
+                    <li>💰 $600 iniciales</li>
+                    <li>⚔ Daño 22 / golpe</li>
+                </ul>
+            </div>
+
+            <div class="diff-card" data-diff="muyLoco" style="--dcolor:#ff2222">
+                <div class="diff-emoji">💀</div>
+                <div class="diff-name" style="color:#ff2222">Muy Loco</div>
+                <div class="diff-desc">¿Por qué haces esto?</div>
+                <ul class="diff-stats">
+                    <li>❤ Vida enemigos ×2.00</li>
+                    <li>💨 Velocidad ×1.70</li>
+                    <li>🩹 Drop salud 5%</li>
+                    <li>💰 $400 iniciales</li>
+                    <li>⚔ Daño 35 / golpe</li>
+                </ul>
+            </div>
+
+        </div>
+        <button class="btn-back" onclick="showModeScreen()">◀ Volver</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ TUTORIAL ════════════════════════════════ -->
+<div id="tutorial-screen" class="sub-screen hidden">
+    <div class="sub-panel wide-panel">
+        <h2>📖 Tutorial</h2>
+
+        <div class="controls-grid">
+            <div class="ctrl-item"><div class="key-box">W A S D</div><div class="ctrl-label">Moverse</div></div>
+            <div class="ctrl-item"><div class="key-box">🖱 MOVER</div><div class="ctrl-label">Apuntar</div></div>
+            <div class="ctrl-item"><div class="key-box">🖱 CLIC</div><div class="ctrl-label">Disparar</div></div>
+            <div class="ctrl-item"><div class="key-box">SPACE</div><div class="ctrl-label">Saltar</div></div>
+            <div class="ctrl-item"><div class="key-box">E</div><div class="ctrl-label">Dash <small>(5 s CD)</small></div></div>
+            <div class="ctrl-item"><div class="key-box">R</div><div class="ctrl-label">Recargar</div></div>
+            <div class="ctrl-item"><div class="key-box">1 / 2 / 3</div><div class="ctrl-label">Cambiar arma</div></div>
+            <div class="ctrl-item"><div class="key-box">B</div><div class="ctrl-label">Armería</div></div>
+            <div class="ctrl-item"><div class="key-box">ESC</div><div class="ctrl-label">Pausar</div></div>
+        </div>
+
+        <div class="tips-box">
+            <h3>💡 Consejos</h3>
+            <ul>
+                <li>🎯 Los <b>headshots</b> hacen 2.5× más daño — apunta a la cabeza</li>
+                <li>💰 Cada baja da <b>$200</b> — acumula para comprar armas</li>
+                <li>🧱 Usa las <b>coberturas</b> (cajas marrones) para esquivar</li>
+                <li>💨 El <b>Dash</b> rompe el cerco de enemigos en apuros</li>
+                <li>🔫 La <b>escopeta</b> es letal a corta distancia</li>
+                <li>📡 El <b>minimapa</b> muestra puntos rojos = enemigos</li>
+                <li>⭐ Recoge la <b>estrella dorada</b> para invulnerabilidad + velocidad</li>
+            </ul>
+        </div>
+
+        <button class="btn-back" onclick="showMainMenu()">◀ Volver</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ STATS ═══════════════════════════════════ -->
+<div id="stats-screen" class="sub-screen hidden">
+    <div class="sub-panel">
+        <h2>📊 Estadísticas</h2>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-val" id="st-best-wave">0</div>
+                <div class="stat-lbl">🏆 Mejor oleada</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="st-total-kills">0</div>
+                <div class="stat-lbl">💀 Bajas totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="st-games">0</div>
+                <div class="stat-lbl">🎮 Partidas jugadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="st-time">0:00</div>
+                <div class="stat-lbl">⏱ Tiempo jugado</div>
+            </div>
+        </div>
+
+        <button id="btn-reset-stats" class="btn-danger">🗑 Resetear estadísticas</button>
+        <button class="btn-back" onclick="showMainMenu()">◀ Volver</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ OPTIONS ═════════════════════════════════ -->
+<div id="options-screen" class="sub-screen hidden">
+    <div class="sub-panel">
+        <h2>⚙ Opciones</h2>
+
+        <div class="opt-group">
+            <div class="opt-label">🖱 Sensibilidad del ratón</div>
+            <div class="opt-row">
+                <span class="range-min">Lento</span>
+                <input type="range" id="opt-sens" min="0.3" max="3" step="0.1" value="1">
+                <span class="range-max">Rápido</span>
+                <span class="opt-val" id="sens-val">1.0×</span>
+            </div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">🎯 Color de mira</div>
+            <div class="color-swatches" id="color-swatches">
+                <button class="swatch active" data-color="#00ff00" style="background:#00ff00" title="Verde"></button>
+                <button class="swatch" data-color="#00ffff" style="background:#00ffff" title="Cian"></button>
+                <button class="swatch" data-color="#ff3333" style="background:#ff3333" title="Rojo"></button>
+                <button class="swatch" data-color="#ffff00" style="background:#ffff00" title="Amarillo"></button>
+                <button class="swatch" data-color="#ff6600" style="background:#ff6600" title="Naranja"></button>
+                <button class="swatch" data-color="#ffffff" style="background:#ffffff" title="Blanco"></button>
+                <button class="swatch" data-color="#ff00ff" style="background:#ff00ff" title="Magenta"></button>
+                <button class="swatch" data-color="#00aaff" style="background:#00aaff" title="Azul"></button>
+            </div>
+            <div id="crosshair-preview">
+                <div id="ch-preview-v"></div>
+                <div id="ch-preview-h"></div>
+            </div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">📏 Tamaño de mira</div>
+            <div class="size-btns" id="size-btns">
+                <button class="size-btn" data-size="14">S</button>
+                <button class="size-btn active" data-size="20">M</button>
+                <button class="size-btn" data-size="28">L</button>
+                <button class="size-btn" data-size="36">XL</button>
+            </div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">🗺 Minimapa</div>
+            <div class="opt-row">
+                <button id="opt-minimap" class="toggle-btn on">ON</button>
+            </div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">🔊 Volumen</div>
+            <div class="opt-row">
+                <span class="range-min">0%</span>
+                <input type="range" id="opt-vol" min="0" max="100" step="5" value="80">
+                <span class="range-max">100%</span>
+                <span class="opt-val" id="vol-val">80%</span>
+            </div>
+        </div>
+
+        <button class="btn-back" onclick="showMainMenu()">◀ Volver</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ WIN SCREEN ═══════════════════════════════ -->
+<div id="win-screen" class="sub-screen hidden">
+    <div class="win-panel">
+        <div class="win-title">🏆 ¡GANASTE!</div>
+        <div class="win-subtitle">Completaste el Gun Game</div>
+        <div class="win-stat">Bajas totales: <span id="win-kills">10</span></div>
+        <button class="menu-btn primary" onclick="startGunGameMode()">↺ &nbsp;JUGAR DE NUEVO</button>
+        <button class="menu-btn" onclick="showMainMenu()">⌂ &nbsp;MENÚ PRINCIPAL</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ GAME UI ══════════════════════════════════ -->
+<div id="ui-container">
+    <div id="crosshair" class="hidden"></div>
+    <div id="damage-overlay" class="hidden"></div>
+    <div id="hit-marker"     class="hidden"></div>
+
+    <!-- Star power-up screen border -->
+    <div id="star-overlay"></div>
+
+    <!-- Star power-up HUD bar -->
+    <div id="star-hud" class="hidden">
+        <div id="star-bar-bg">
+            <div id="star-bar-fill"></div>
+        </div>
+        <div id="star-bar-label">⭐ ESTRELLA 8s</div>
+    </div>
+
+    <!-- Gun Game progress bar -->
+    <div id="gg-hud" class="hidden">
+        <div id="gg-weapon-name">🪃 Bate</div>
+        <div id="gg-steps">
+            <div class="gg-step current" title="Bate"></div>
+            <div class="gg-step pending" title="Pistola"></div>
+            <div class="gg-step pending" title="Revólver"></div>
+            <div class="gg-step pending" title="SMG"></div>
+            <div class="gg-step pending" title="Rifle AR"></div>
+            <div class="gg-step pending" title="Escopeta"></div>
+            <div class="gg-step pending" title="Francotirador"></div>
+            <div class="gg-step pending" title="Minigun"></div>
+            <div class="gg-step pending" title="Lanzacohetes"></div>
+            <div class="gg-step pending" title="⭐ Pistola Dorada"></div>
+        </div>
+    </div>
+
+    <div id="top-hud">
+        <div id="wave-display">OLEADA 1</div>
+        <div id="diff-display" class="hidden">FÁCIL</div>
+        <div id="kill-display">Bajas: 0</div>
+    </div>
+
+    <div id="stats">
+        <div id="health-bar-container">
+            <div id="health-label">HP</div>
+            <div id="health-bar"></div>
+        </div>
+        <div id="ammo-display">Ammo: 12 / 12</div>
+        <div id="money-display">Cash: $800</div>
+    </div>
+
+    <div id="weapon-display">PISTOL [1··]</div>
+    <div id="reload-indicator" class="hidden">⟳ RECARGANDO...</div>
+    <canvas id="minimap"></canvas>
+
+    <div id="buy-menu" class="hidden">
+        <h2>⚔ Armería</h2>
+        <div id="weapon-list"></div>
+        <p id="shop-money">Cash: $800</p>
+        <button id="close-shop">Cerrar (ESC)</button>
+    </div>
+
+    <div id="pause-menu" class="hidden">
+        <h1>PAUSADO</h1>
+        <button id="resume-game">▶ Continuar</button>
+        <button id="btn-opts-pause">⚙ Opciones</button>
+        <button id="btn-menu-from-pause">⌂ Menú Principal</button>
+    </div>
+
+    <div id="game-over" class="hidden">
+        <h1>💀 GAME OVER</h1>
+        <div id="game-over-stats"></div>
+        <button id="restart-game">↺ Nueva Partida</button>
+        <button id="btn-menu-from-over">⌂ Menú Principal</button>
+    </div>
+
+    <div id="wave-announce" class="hidden"></div>
+
+    <div id="controls-hint">
+        WASD Mover · Ratón Apuntar · Clic Disparar · R Recargar · E Dash · 1/2/3 Armas · B Tienda · ESC Pausa
+    </div>
+</div>
+
+<script src="js/game.js"></script>
+</body>
+</html>
