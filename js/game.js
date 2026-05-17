@@ -404,9 +404,11 @@ function triggerGunGameWin() {
     document.getElementById('win-screen').classList.remove('hidden');
     state.isPaused = true; state.isGameOver = true;
     document.exitPointerLock();
+    updateTouchUI(); // hide touch controls on win
 }
 
 function triggerGameOver() {
+    updateTouchUI(); // hide touch controls on game over
     var elapsed = Math.floor((Date.now() - state.startTime) / 1000);
     saveStats(state.wave, state.totalKills, elapsed);
     document.getElementById('game-over-stats').innerHTML =
@@ -421,8 +423,12 @@ function togglePause() {
     if (state.isBuying || state.isGameOver) return;
     state.isPaused = !state.isPaused;
     document.getElementById('pause-menu').classList.toggle('hidden', !state.isPaused);
-    if (state.isPaused) document.exitPointerLock();
-    else { document.getElementById('crosshair').classList.remove('hidden'); requestLock(); }
+    if (state.isPaused) {
+        document.exitPointerLock();
+        updateTouchUI();
+    } else {
+        requestLock(); // sets mobileActive on mobile, requests lock on desktop
+    }
 }
 
 function openShop() {
@@ -435,7 +441,7 @@ function openShop() {
 function closeShop() {
     state.isBuying = state.isPaused = false;
     document.getElementById('buy-menu').classList.add('hidden');
-    document.getElementById('crosshair').classList.remove('hidden'); requestLock();
+    requestLock(); // updates crosshair via updateTouchUI on mobile
 }
 
 function populateShop() {
@@ -854,7 +860,36 @@ var inMenu      = true;
 var gameStarted = false;
 var menuCamAngle = 0;
 
-function requestLock() { document.body.requestPointerLock(); }
+// ── Mobile detection ──────────────────────────────────────────────────────────
+var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+var mobileActive = false; // replaces input.isLocked on touch devices
+
+// Returns true when the game should process input (locked OR mobile active)
+function gameIsActive() {
+    return input.isLocked || (isMobile && mobileActive);
+}
+
+// Show/hide touch UI and crosshair depending on game state
+function updateTouchUI() {
+    var tu = document.getElementById('touch-ui');
+    if (tu) {
+        var show = isMobile && mobileActive && !inMenu && !state.isGameOver;
+        tu.classList.toggle('game-active', show);
+    }
+    // On mobile the crosshair is always hidden — we use touch aim
+    document.getElementById('crosshair').classList.toggle('hidden',
+        isMobile ? true : !input.isLocked
+    );
+}
+
+function requestLock() {
+    if (isMobile) {
+        mobileActive = true;
+        updateTouchUI();
+    } else {
+        document.body.requestPointerLock();
+    }
+}
 
 function hideAllSubScreens() {
     ['tutorial-screen','stats-screen','options-screen','difficulty-screen','mode-screen','win-screen'].forEach(function(id){
@@ -894,6 +929,7 @@ function _highlightDiff() {
 
 function startGame() {
     playMenuClick(); hideMainMenu(); hideAllSubScreens();
+    mobileActive = false; // reset; requestLock() will set it
     state.gameMode = 'normal';
     resetState(); clearEnemies(); clearHealthPickups(); removeStar();
     starAutoTimer = 60; ggSpawnTimer = 0;
@@ -913,6 +949,7 @@ function startGame() {
 
 function startGunGameMode() {
     playMenuClick(); hideMainMenu(); hideAllSubScreens();
+    mobileActive = false; // reset; requestLock() will set it
     state.gameMode = 'gungame';
     resetState(); clearEnemies(); clearHealthPickups(); removeStar();
     starAutoTimer = 60; ggSpawnTimer = 3.5;
@@ -940,8 +977,10 @@ function continueGame() {
 
 function backToMainMenu() {
     playMenuClick(); state.isPaused = true; document.exitPointerLock();
+    mobileActive = false;
     document.getElementById('pause-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
+    updateTouchUI();
     showMainMenu();
 }
 
@@ -994,11 +1033,16 @@ document.getElementById('btn-menu-from-over').onclick  = backToMainMenu;
 document.getElementById('btn-opts-pause').onclick      = function(){ state.isPaused=true; document.exitPointerLock(); hideAllSubScreens(); syncOptionsUI(); document.getElementById('options-screen').classList.remove('hidden'); document.getElementById('main-menu').style.display='none'; };
 
 // ──────────────────────────────────────────────────────────── INPUT ──────────
-document.body.addEventListener('click', function(){ if(!inMenu&&!state.isPaused&&!state.isBuying&&!state.isGameOver){initAudio();requestLock();} });
+document.body.addEventListener('click', function(){
+    initAudio();
+    if (!inMenu && !state.isPaused && !state.isBuying && !state.isGameOver && !isMobile) {
+        requestLock();
+    }
+});
 
 document.addEventListener('pointerlockchange', function(){
     input.isLocked = document.pointerLockElement === document.body;
-    document.getElementById('crosshair').classList.toggle('hidden', !input.isLocked);
+    updateTouchUI();
 });
 
 document.addEventListener('keydown', function(e) {
@@ -1019,16 +1063,19 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('keyup', function(e){ input.keys[e.code]=false; });
 
 document.addEventListener('mousemove', function(e){
-    if(!input.isLocked||inMenu)return;
-    var s=settings.sensitivity;
-    input.yaw   -= (e.movementX||0)*0.002*s;
-    input.pitch -= (e.movementY||0)*0.002*s;
+    if (isMobile || !input.isLocked || inMenu) return;
+    var s = settings.sensitivity;
+    input.yaw   -= (e.movementX || 0) * 0.002 * s;
+    input.pitch -= (e.movementY || 0) * 0.002 * s;
     input.pitch  = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, input.pitch));
     // Camera rotation applied by applyShake() each frame
 });
 
 document.addEventListener('mousedown', function(e){
-    if(e.button===0&&input.isLocked&&!state.isBuying&&!state.isPaused&&!state.isGameOver&&!inMenu)fireWeapon();
+    if (isMobile) return; // handled by touch buttons
+    if (e.button===0 && input.isLocked && !state.isBuying && !state.isPaused && !state.isGameOver && !inMenu) {
+        fireWeapon();
+    }
 });
 
 window.addEventListener('resize', function(){
@@ -1054,7 +1101,7 @@ function animate() {
     applyPhysics(delta);
     applyShake();
 
-    if (!state.isPaused && input.isLocked) {
+    if (!state.isPaused && gameIsActive()) {
         handleMovement(delta);
         updateEnemyAI(delta);
         updateStarPickup(delta);

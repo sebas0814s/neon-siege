@@ -1,3 +1,50 @@
+/* ─── ROTATE PROMPT (shows when phone is portrait) ──────────────────────── */
+#rotate-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #0a0a1e;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 24px;
+}
+
+@media screen and (orientation: portrait) and (max-width: 1200px) {
+    #rotate-prompt { display: flex; }
+}
+
+#rotate-phone {
+    font-size: 72px;
+    animation: rotate-anim 1.6s ease-in-out infinite;
+}
+@keyframes rotate-anim {
+    0%, 100% { transform: rotate(0deg); }
+    40%       { transform: rotate(90deg); }
+    60%       { transform: rotate(90deg); }
+}
+
+#rotate-title {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #00ffcc;
+    text-transform: uppercase;
+}
+
+#rotate-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1px;
+}
+
+/* ─── TOUCH UI: hidden by default, shown by JS when game is active ───────── */
+#touch-ui { display: none !important; }
+#touch-ui.game-active { display: block !important; }
+
 /* ─── RESET ─────────────────────────────────────────────────────────────── */
 :root {
     --ch-color: #00ff00;

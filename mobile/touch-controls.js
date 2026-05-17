@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  NEON SIEGE — Touch Controls for Mobile
-//  Injects a virtual joystick (left) and action buttons (right) into the game.
-//  Designed for landscape orientation on Android phones.
+//  Starts hidden. game.js calls updateTouchUI() to show/hide via .game-active.
+//  Joystick (left) + look swipe (right) + action buttons (right side).
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
@@ -9,136 +9,133 @@
 
     // ── State exposed to the game ─────────────────────────────────────────────
     window.touchInput = {
-        moveX: 0,   // -1 to 1 (left/right)
-        moveY: 0,   // -1 to 1 (forward/back)
-        lookDX: 0,  // accumulated look delta X this frame
-        lookDY: 0,  // accumulated look delta Y this frame
+        moveX: 0,   // -1 to 1
+        moveY: 0,   // -1 to 1
+        lookDX: 0,  // accumulated look delta this frame
+        lookDY: 0,
         shooting: false,
     };
 
-    var JOYSTICK_RADIUS = 60;
-    var DEAD_ZONE = 8;
+    var JOYSTICK_RADIUS = 65;
+    var DEAD_ZONE       = 10;
 
-    // ── DOM injection ─────────────────────────────────────────────────────────
-    var css = document.createElement('style');
-    css.textContent = `
+    // ── CSS injection ─────────────────────────────────────────────────────────
+    var style = document.createElement('style');
+    style.textContent = `
         #touch-ui {
             position: fixed; inset: 0;
             pointer-events: none;
             z-index: 500;
             user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* ── Left zone: joystick ── */
+        /* Left 45% — joystick movement */
         #joy-zone {
             position: absolute;
             left: 0; top: 0;
             width: 45%; height: 100%;
             pointer-events: auto;
+            touch-action: none;
         }
+
         #joy-base {
             position: absolute;
-            width: 120px; height: 120px;
+            width: 130px; height: 130px;
             border-radius: 50%;
-            background: rgba(0,255,200,0.08);
-            border: 2px solid rgba(0,255,200,0.25);
-            transform: translate(-50%,-50%);
+            background: rgba(0,255,200,0.07);
+            border: 2px solid rgba(0,255,200,0.3);
+            transform: translate(-50%, -50%);
             display: none;
+            pointer-events: none;
         }
         #joy-stick {
             position: absolute;
-            width: 52px; height: 52px;
+            width: 56px; height: 56px;
             border-radius: 50%;
-            background: rgba(0,255,200,0.35);
-            border: 2px solid rgba(0,255,200,0.7);
-            box-shadow: 0 0 16px rgba(0,255,200,0.3);
-            transform: translate(-50%,-50%);
+            background: rgba(0,255,200,0.4);
+            border: 2px solid rgba(0,255,200,0.8);
+            box-shadow: 0 0 18px rgba(0,255,200,0.35);
+            transform: translate(-50%, -50%);
             display: none;
+            pointer-events: none;
         }
 
-        /* ── Right zone: look + buttons ── */
+        /* Right 55% — look + shoot */
         #look-zone {
             position: absolute;
             right: 0; top: 0;
             width: 55%; height: 100%;
             pointer-events: auto;
+            touch-action: none;
         }
 
         /* ── Action buttons ── */
-        #btn-shoot {
+        .touch-btn {
             position: absolute;
-            right: 28px; bottom: 60px;
-            width: 90px; height: 90px;
             border-radius: 50%;
-            background: rgba(255,50,50,0.25);
-            border: 3px solid rgba(255,80,80,0.7);
-            box-shadow: 0 0 20px rgba(255,50,50,0.3);
-            color: #fff; font-size: 28px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             pointer-events: auto;
             touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            font-weight: 800;
+            color: #fff;
+            transition: transform 0.08s, background 0.08s;
+        }
+        .touch-btn:active { transform: scale(0.9); }
+
+        #btn-shoot {
+            right: 24px; bottom: 48px;
+            width: 96px; height: 96px;
+            font-size: 30px;
+            background: rgba(255,50,50,0.22);
+            border: 3px solid rgba(255,80,80,0.65);
+            box-shadow: 0 0 22px rgba(255,50,50,0.25);
         }
         #btn-shoot.active {
-            background: rgba(255,50,50,0.55);
-            box-shadow: 0 0 30px rgba(255,50,50,0.6);
+            background: rgba(255,50,50,0.5);
+            box-shadow: 0 0 34px rgba(255,50,50,0.55);
         }
 
         #btn-dash {
-            position: absolute;
-            right: 135px; bottom: 68px;
-            width: 68px; height: 68px;
-            border-radius: 50%;
+            right: 138px; bottom: 54px;
+            width: 72px; height: 72px;
+            font-size: 22px;
             background: rgba(0,200,255,0.18);
             border: 2px solid rgba(0,200,255,0.5);
-            color: #fff; font-size: 18px;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
         }
 
         #btn-jump {
-            position: absolute;
-            right: 130px; bottom: 148px;
-            width: 58px; height: 58px;
-            border-radius: 50%;
-            background: rgba(100,255,100,0.18);
+            right: 132px; bottom: 142px;
+            width: 62px; height: 62px;
+            font-size: 18px;
+            background: rgba(100,255,100,0.15);
             border: 2px solid rgba(100,255,100,0.4);
-            color: #fff; font-size: 16px;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
         }
 
         #btn-reload {
-            position: absolute;
-            right: 230px; bottom: 68px;
-            width: 58px; height: 58px;
-            border-radius: 50%;
-            background: rgba(255,200,0,0.15);
+            right: 230px; bottom: 58px;
+            width: 62px; height: 62px;
+            font-size: 15px;
+            letter-spacing: 1px;
+            background: rgba(255,200,0,0.14);
             border: 2px solid rgba(255,200,0,0.4);
-            color: #fff; font-size: 14px;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
-            letter-spacing: 1px; font-weight: 800;
         }
 
         #btn-pause-touch {
-            position: absolute;
-            top: 16px; right: 16px;
-            width: 50px; height: 50px;
-            border-radius: 10px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: rgba(255,255,255,0.7);
+            top: 14px; right: 14px;
+            width: 52px; height: 52px;
+            border-radius: 10px !important;
             font-size: 20px;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
-            touch-action: none;
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.2);
         }
     `;
-    document.head.appendChild(css);
+    document.head.appendChild(style);
 
+    // ── DOM ───────────────────────────────────────────────────────────────────
     var ui = document.createElement('div');
     ui.id = 'touch-ui';
     ui.innerHTML = `
@@ -147,11 +144,11 @@
             <div id="joy-stick"></div>
         </div>
         <div id="look-zone"></div>
-        <div id="btn-shoot">🔥</div>
-        <div id="btn-dash">💨</div>
-        <div id="btn-jump">↑</div>
-        <div id="btn-reload">R</div>
-        <div id="btn-pause-touch">⏸</div>
+        <div id="btn-shoot"  class="touch-btn">🔥</div>
+        <div id="btn-dash"   class="touch-btn">💨</div>
+        <div id="btn-jump"   class="touch-btn">↑</div>
+        <div id="btn-reload" class="touch-btn">R</div>
+        <div id="btn-pause-touch" class="touch-btn">⏸</div>
     `;
     document.body.appendChild(ui);
 
@@ -161,53 +158,52 @@
     var lookZone = document.getElementById('look-zone');
     var btnShoot = document.getElementById('btn-shoot');
 
-    // ── Joystick logic ────────────────────────────────────────────────────────
-    var joyOriginX = 0, joyOriginY = 0;
+    // ── Virtual joystick ──────────────────────────────────────────────────────
     var joyTouchId = null;
+    var joyOriginX = 0, joyOriginY = 0;
 
     joyZone.addEventListener('touchstart', function (e) {
+        e.preventDefault();
         if (joyTouchId !== null) return;
         var t = e.changedTouches[0];
         joyTouchId = t.identifier;
         joyOriginX = t.clientX;
         joyOriginY = t.clientY;
-
-        joyBase.style.left  = t.clientX + 'px';
-        joyBase.style.top   = t.clientY + 'px';
+        joyBase.style.left = t.clientX + 'px';
+        joyBase.style.top  = t.clientY + 'px';
         joyStick.style.left = t.clientX + 'px';
         joyStick.style.top  = t.clientY + 'px';
         joyBase.style.display  = 'block';
         joyStick.style.display = 'block';
-    }, { passive: true });
+    }, { passive: false });
 
     joyZone.addEventListener('touchmove', function (e) {
+        e.preventDefault();
         for (var i = 0; i < e.changedTouches.length; i++) {
             var t = e.changedTouches[i];
             if (t.identifier !== joyTouchId) continue;
 
-            var dx = t.clientX - joyOriginX;
-            var dy = t.clientY - joyOriginY;
+            var dx   = t.clientX - joyOriginX;
+            var dy   = t.clientY - joyOriginY;
             var dist = Math.sqrt(dx * dx + dy * dy);
-            var clamp = Math.min(dist, JOYSTICK_RADIUS);
-            var angle = Math.atan2(dy, dx);
+            var ang  = Math.atan2(dy, dx);
+            var cl   = Math.min(dist, JOYSTICK_RADIUS);
 
-            var sx = Math.cos(angle) * clamp;
-            var sy = Math.sin(angle) * clamp;
-
-            joyStick.style.left = (joyOriginX + sx) + 'px';
-            joyStick.style.top  = (joyOriginY + sy) + 'px';
+            joyStick.style.left = (joyOriginX + Math.cos(ang) * cl) + 'px';
+            joyStick.style.top  = (joyOriginY + Math.sin(ang) * cl) + 'px';
 
             if (dist < DEAD_ZONE) {
                 window.touchInput.moveX = 0;
                 window.touchInput.moveY = 0;
             } else {
-                window.touchInput.moveX =  Math.cos(angle) * (clamp / JOYSTICK_RADIUS);
-                window.touchInput.moveY =  Math.sin(angle) * (clamp / JOYSTICK_RADIUS);
+                window.touchInput.moveX =  Math.cos(ang) * (cl / JOYSTICK_RADIUS);
+                window.touchInput.moveY =  Math.sin(ang) * (cl / JOYSTICK_RADIUS);
             }
         }
-    }, { passive: true });
+    }, { passive: false });
 
     function joyEnd(e) {
+        e.preventDefault();
         for (var i = 0; i < e.changedTouches.length; i++) {
             if (e.changedTouches[i].identifier === joyTouchId) {
                 joyTouchId = null;
@@ -218,70 +214,72 @@
             }
         }
     }
-    joyZone.addEventListener('touchend',    joyEnd, { passive: true });
-    joyZone.addEventListener('touchcancel', joyEnd, { passive: true });
+    joyZone.addEventListener('touchend',    joyEnd, { passive: false });
+    joyZone.addEventListener('touchcancel', joyEnd, { passive: false });
 
-    // ── Look zone (right side swipe to aim) ───────────────────────────────────
-    var lookTouches = {};
-    var LOOK_SENSITIVITY = 0.35;
+    // ── Look / aim zone ───────────────────────────────────────────────────────
+    var lookPrev = {};
+    var LOOK_SENS = 0.4;
 
     lookZone.addEventListener('touchstart', function (e) {
+        e.preventDefault();
         for (var i = 0; i < e.changedTouches.length; i++) {
             var t = e.changedTouches[i];
-            lookTouches[t.identifier] = { x: t.clientX, y: t.clientY };
+            lookPrev[t.identifier] = { x: t.clientX, y: t.clientY };
         }
-    }, { passive: true });
+    }, { passive: false });
 
     lookZone.addEventListener('touchmove', function (e) {
+        e.preventDefault();
         for (var i = 0; i < e.changedTouches.length; i++) {
-            var t = e.changedTouches[i];
-            var prev = lookTouches[t.identifier];
+            var t    = e.changedTouches[i];
+            var prev = lookPrev[t.identifier];
             if (!prev) continue;
-            window.touchInput.lookDX += (t.clientX - prev.x) * LOOK_SENSITIVITY;
-            window.touchInput.lookDY += (t.clientY - prev.y) * LOOK_SENSITIVITY;
-            lookTouches[t.identifier] = { x: t.clientX, y: t.clientY };
+            window.touchInput.lookDX += (t.clientX - prev.x) * LOOK_SENS;
+            window.touchInput.lookDY += (t.clientY - prev.y) * LOOK_SENS;
+            lookPrev[t.identifier] = { x: t.clientX, y: t.clientY };
         }
-    }, { passive: true });
+    }, { passive: false });
 
     function lookEnd(e) {
+        e.preventDefault();
         for (var i = 0; i < e.changedTouches.length; i++) {
-            delete lookTouches[e.changedTouches[i].identifier];
+            delete lookPrev[e.changedTouches[i].identifier];
         }
     }
-    lookZone.addEventListener('touchend',    lookEnd, { passive: true });
-    lookZone.addEventListener('touchcancel', lookEnd, { passive: true });
+    lookZone.addEventListener('touchend',    lookEnd, { passive: false });
+    lookZone.addEventListener('touchcancel', lookEnd, { passive: false });
 
     // ── Action buttons ────────────────────────────────────────────────────────
-    function fireBtn(el, onDown, onUp) {
+    function touchBtn(el, onDown, onUp) {
         el.addEventListener('touchstart', function (e) {
-            e.preventDefault(); onDown();
-        });
-        el.addEventListener('touchend',    function (e) { e.preventDefault(); if (onUp) onUp(); });
-        el.addEventListener('touchcancel', function (e) { e.preventDefault(); if (onUp) onUp(); });
+            e.preventDefault(); e.stopPropagation();
+            onDown();
+        }, { passive: false });
+        el.addEventListener('touchend', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            if (onUp) onUp();
+        }, { passive: false });
+        el.addEventListener('touchcancel', function (e) {
+            e.preventDefault();
+            if (onUp) onUp();
+        }, { passive: false });
     }
 
-    fireBtn(btnShoot,
+    function fakeKey(code) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { code: code, bubbles: true }));
+    }
+
+    touchBtn(btnShoot,
         function () { window.touchInput.shooting = true;  btnShoot.classList.add('active'); },
         function () { window.touchInput.shooting = false; btnShoot.classList.remove('active'); }
     );
+    touchBtn(document.getElementById('btn-dash'),        function () { fakeKey('KeyE'); });
+    touchBtn(document.getElementById('btn-jump'),        function () { fakeKey('Space'); });
+    touchBtn(document.getElementById('btn-reload'),      function () { fakeKey('KeyR'); });
+    touchBtn(document.getElementById('btn-pause-touch'), function () { fakeKey('Escape'); });
 
-    fireBtn(document.getElementById('btn-dash'), function () {
-        document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', bubbles: true }));
-    });
-
-    fireBtn(document.getElementById('btn-jump'), function () {
-        document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
-    });
-
-    fireBtn(document.getElementById('btn-reload'), function () {
-        document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true }));
-    });
-
-    fireBtn(document.getElementById('btn-pause-touch'), function () {
-        document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', bubbles: true }));
-    });
-
-    // ── Expose delta reader (called by game loop) ─────────────────────────────
+    // ── Expose delta reader (cleared after each read by game loop) ────────────
     window.consumeTouchLook = function () {
         var dx = window.touchInput.lookDX;
         var dy = window.touchInput.lookDY;
@@ -290,12 +288,7 @@
         return { dx: dx, dy: dy };
     };
 
-    // ── Lock landscape orientation ────────────────────────────────────────────
-    if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(function () {});
-    }
-
-    // ── Prevent browser gestures interfering ─────────────────────────────────
-    document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+    // ── Prevent browser bounce / scroll only inside game zones ────────────────
+    // (We use e.preventDefault() directly on each zone above, so no global block needed)
 
 })();
