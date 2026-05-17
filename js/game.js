@@ -77,7 +77,7 @@ function waveConfig(wave) {
 
 // ──────────────────────────────────────────────────────────── SETTINGS ───────
 var settings = (function() {
-    var def = { sensitivity: 1.0, crosshairColor: '#00ff00', crosshairSize: 20, showMinimap: true, volume: 80, difficulty: 'medioTonto' };
+    var def = { sensitivity: 1.0, touchSensitivity: 1.0, crosshairColor: '#00ff00', crosshairSize: 20, showMinimap: true, volume: 80, difficulty: 'medioTonto' };
     try { return Object.assign({}, def, JSON.parse(localStorage.getItem('shooter_settings') || '{}')); }
     catch(e) { return def; }
 })();
@@ -879,8 +879,9 @@ document.addEventListener('touchmove', function (e) {
             else { var ang = Math.atan2(dy, dx), cl = Math.min(dist, JOY_PX); _tMov.x = Math.cos(ang) * (cl / JOY_PX); _tMov.y = Math.sin(ang) * (cl / JOY_PX); }
         }
         if (t.identifier === _tRId) {
-            input.yaw   -= (t.clientX - _tRLX) * 0.005;
-            input.pitch -= (t.clientY - _tRLY) * 0.005;
+            var ts = (settings.touchSensitivity || 1.0) * 0.004;
+            input.yaw   -= (t.clientX - _tRLX) * ts;
+            input.pitch -= (t.clientY - _tRLY) * ts;
             input.pitch  = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, input.pitch));
             _tRLX = t.clientX; _tRLY = t.clientY;
         }
@@ -985,6 +986,7 @@ function startGame() {
     createWeaponModel('pistol');
     updateDifficultyDisplay();
     inMenu = false; gameStarted = true;
+    if (isMobile) document.body.classList.add('mobile-game');
     startWave(1); updateUI();
     requestLock();
 }
@@ -1007,6 +1009,7 @@ function startGunGameMode() {
     // Initial enemy spawn
     for (var i=0; i<3; i++) spawnEnemy(80, 2.8);
     inMenu = false; gameStarted = true;
+    if (isMobile) document.body.classList.add('mobile-game');
     updateUI(); requestLock();
 }
 
@@ -1020,6 +1023,7 @@ function continueGame() {
 function backToMainMenu() {
     playMenuClick(); state.isPaused = true; document.exitPointerLock();
     mobileActive = false;
+    document.body.classList.remove('mobile-game');
     document.getElementById('pause-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
     updateTouchUI();
@@ -1041,6 +1045,8 @@ document.getElementById('difficulty-screen').addEventListener('click', function(
 function syncOptionsUI() {
     document.getElementById('opt-sens').value  = settings.sensitivity;
     document.getElementById('sens-val').textContent = parseFloat(settings.sensitivity).toFixed(1) + '×';
+    var ts = document.getElementById('opt-touch-sens');
+    if (ts) { ts.value = settings.touchSensitivity; document.getElementById('touch-sens-val').textContent = parseFloat(settings.touchSensitivity).toFixed(1) + '×'; }
     document.getElementById('opt-vol').value   = settings.volume;
     document.getElementById('vol-val').textContent  = settings.volume + '%';
     document.querySelectorAll('.swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === settings.crosshairColor); });
@@ -1052,6 +1058,8 @@ function syncOptionsUI() {
 }
 
 document.getElementById('opt-sens').addEventListener('input', function(){ settings.sensitivity=parseFloat(this.value); document.getElementById('sens-val').textContent=settings.sensitivity.toFixed(1)+'×'; saveSettings(); });
+var _tsEl = document.getElementById('opt-touch-sens');
+if (_tsEl) { _tsEl.addEventListener('input', function(){ settings.touchSensitivity=parseFloat(this.value); document.getElementById('touch-sens-val').textContent=settings.touchSensitivity.toFixed(1)+'×'; saveSettings(); }); }
 document.getElementById('opt-vol').addEventListener('input', function(){ settings.volume=parseInt(this.value); document.getElementById('vol-val').textContent=settings.volume+'%'; if(masterGain)masterGain.gain.value=settings.volume/100; saveSettings(); });
 document.getElementById('color-swatches').addEventListener('click', function(e){ var b=e.target.closest('.swatch'); if(!b)return; settings.crosshairColor=b.dataset.color; document.querySelectorAll('.swatch').forEach(function(s){s.classList.toggle('active',s===b);}); applySettings(); saveSettings(); });
 document.getElementById('size-btns').addEventListener('click', function(e){ var b=e.target.closest('.size-btn'); if(!b)return; settings.crosshairSize=parseInt(b.dataset.size); document.querySelectorAll('.size-btn').forEach(function(x){x.classList.toggle('active',x===b);}); applySettings(); saveSettings(); });

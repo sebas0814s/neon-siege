@@ -45,8 +45,79 @@
 #touch-ui { display: none !important; }
 #touch-ui.game-active { display: block !important; }
 
-/* Crosshair visible on mobile (pointer-events: none so it doesn't block touches) */
+/* Crosshair visible on mobile */
 #crosshair { pointer-events: none; }
+
+/* ─── MOBILE GAME HUD — activado con body.mobile-game ───────────────────── */
+/*
+   En móvil el HUD se reposiciona para no tapar la vista:
+   · Stats (vida/ammo) suben arriba-izquierda (el joystick ocupa abajo-izq)
+   · Weapon display se oculta (lo muestra el GG HUD o es obvio cuál tienes)
+   · Money display oculto (no hay tienda abierta durante combate)
+   · Minimap reducido y opaco
+   · Todos los elementos bajan mucho la opacidad
+*/
+body.mobile-game #stats {
+    position: absolute;
+    bottom: auto;
+    top: 58px;
+    left: 12px;
+    gap: 5px;
+    opacity: 0.65;
+}
+body.mobile-game #health-bar-container {
+    width: 140px;
+    height: 16px;
+}
+body.mobile-game #health-label {
+    font-size: 10px;
+}
+body.mobile-game #ammo-display {
+    font-size: 16px;
+}
+body.mobile-game #money-display {
+    display: none !important;
+}
+body.mobile-game #weapon-display {
+    display: none !important;
+}
+body.mobile-game #top-hud {
+    gap: 10px;
+    opacity: 0.60;
+}
+body.mobile-game #wave-display {
+    font-size: 14px;
+    padding: 4px 10px;
+}
+body.mobile-game #kill-display {
+    font-size: 13px;
+    padding: 4px 8px;
+}
+body.mobile-game #minimap {
+    width: 88px;
+    height: 88px;
+    opacity: 0.50;
+}
+body.mobile-game #dash-cooldown {
+    bottom: auto !important;
+    top: 52px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 150px !important;
+    height: 22px !important;
+    opacity: 0.55;
+}
+body.mobile-game #reload-indicator {
+    font-size: 20px;
+    opacity: 0.80;
+}
+body.mobile-game #gg-hud {
+    bottom: 180px; /* above touch buttons */
+    opacity: 0.75;
+}
+body.mobile-game #star-hud {
+    opacity: 0.75;
+}
 
 /* ─── RESET ─────────────────────────────────────────────────────────────── */
 :root {

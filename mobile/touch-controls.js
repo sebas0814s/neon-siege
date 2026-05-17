@@ -22,20 +22,20 @@
             -webkit-user-select: none;
         }
 
-        /* ── Joystick area indicator (very subtle) ── */
+        /* ── Joystick zone marker — ultra subtle ── */
         #joy-ring {
             position: absolute;
             left: 44px;
             bottom: 44px;
-            width: 140px;
-            height: 140px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
-            border: 1.5px solid rgba(0,255,200,0.12);
-            background: rgba(0,255,200,0.03);
+            border: 1px solid rgba(0,255,200,0.07);
+            background: transparent;
             pointer-events: none;
         }
 
-        /* ── Base button style — nearly invisible ── */
+        /* ── Base button — transparent, just a ghost outline ── */
         .t-btn {
             position: absolute;
             border-radius: 50%;
@@ -46,70 +46,69 @@
             touch-action: none;
             -webkit-tap-highlight-color: transparent;
             font-weight: 900;
-            color: rgba(255,255,255,0.75);
+            color: rgba(255,255,255,0.35);
             font-family: sans-serif;
             cursor: pointer;
-            background: rgba(255,255,255,0.04);
-            border: 1.5px solid rgba(255,255,255,0.18);
-            transition: transform 0.08s, background 0.08s, border-color 0.08s;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.10);
+            transition: transform 0.07s, background 0.07s, border-color 0.07s, color 0.07s;
         }
         .t-btn:active {
-            transform: scale(0.90);
-            background: rgba(255,255,255,0.14);
-            border-color: rgba(255,255,255,0.5);
+            transform: scale(0.88);
+            background: rgba(255,255,255,0.10);
+            border-color: rgba(255,255,255,0.40);
+            color: rgba(255,255,255,0.90);
         }
 
-        /* SHOOT — slightly more visible so user can find it */
+        /* SHOOT — just a faint red tint, bigger hit area */
         #tb-shoot {
             right: 22px; bottom: 36px;
             width: 96px; height: 96px;
-            font-size: 26px;
-            background: rgba(255,60,60,0.08);
-            border: 1.5px solid rgba(255,80,80,0.30);
-            color: rgba(255,120,120,0.85);
+            font-size: 24px;
+            border: 1px solid rgba(255,80,80,0.18);
+            color: rgba(255,100,100,0.50);
         }
         #tb-shoot.active {
-            background: rgba(255,60,60,0.28);
-            border-color: rgba(255,80,80,0.65);
-            color: #fff;
+            background: rgba(255,60,60,0.18);
+            border-color: rgba(255,80,80,0.55);
+            color: rgba(255,180,180,0.95);
         }
 
         /* RELOAD */
         #tb-reload {
             right: 136px; bottom: 40px;
-            width: 62px; height: 62px;
-            font-size: 14px; letter-spacing: 1px;
-            border-color: rgba(255,200,0,0.22);
-            color: rgba(255,200,0,0.7);
+            width: 60px; height: 60px;
+            font-size: 13px; letter-spacing: 1px;
+            border-color: rgba(255,200,0,0.14);
+            color: rgba(255,200,0,0.40);
         }
 
         /* DASH */
         #tb-dash {
-            right: 130px; bottom: 118px;
-            width: 62px; height: 62px;
-            font-size: 18px;
-            border-color: rgba(0,200,255,0.22);
-            color: rgba(0,200,255,0.7);
+            right: 130px; bottom: 116px;
+            width: 60px; height: 60px;
+            font-size: 17px;
+            border-color: rgba(0,200,255,0.14);
+            color: rgba(0,200,255,0.40);
         }
 
         /* JUMP */
         #tb-jump {
-            right: 218px; bottom: 50px;
-            width: 56px; height: 56px;
-            font-size: 16px;
-            border-color: rgba(120,255,120,0.22);
-            color: rgba(120,255,120,0.7);
+            right: 216px; bottom: 50px;
+            width: 54px; height: 54px;
+            font-size: 15px;
+            border-color: rgba(120,255,120,0.14);
+            color: rgba(120,255,120,0.40);
         }
 
-        /* PAUSE — top right, square, barely visible */
+        /* PAUSE — almost invisible */
         #tb-pause {
             top: 12px; right: 12px;
-            width: 46px; height: 46px;
+            width: 44px; height: 44px;
             border-radius: 8px;
-            font-size: 16px;
-            background: rgba(0,0,0,0.20);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.40);
+            font-size: 15px;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.22);
         }
     `;
     document.head.appendChild(style);
