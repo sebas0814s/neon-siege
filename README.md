@@ -12,7 +12,7 @@
 
 **A browser-based 3D wave survival FPS with cyberpunk aesthetics, built entirely from scratch with Three.js and vanilla JavaScript. No game engine. No framework. Just raw browser tech.**
 
-[▶ Play Now](#) · [📱 Mobile Branch](#mobile-version) · [🐛 Report Bug](../../issues)
+[▶ Run it locally](#-probarlo-en-local) · [📱 Mobile Branch](#-mobile-version) · [🤝 Cómo colaborar](#-cómo-colaborar) · [🐛 Report Bug](../../issues)
 
 ---
 
@@ -125,7 +125,29 @@ Además de la estrella hay dos power-ups que caen de las bajas: **munición infi
 
 ### Architecture
 
-The game is a **single-script monolith** (`game.js`) structured into clearly separated sections, each responsible for one concern. No bundler, no transpiler — just a browser loading one JavaScript file.
+Plain browser JavaScript: no bundler, no transpiler, no framework. `index.html` loads a handful of classic scripts in order. `game.js` owns the rules and the game loop; every other file is a self-contained module that exposes one global (`WeaponFX`, `GameAudio`, …) and `game.js` only calls it if it is there, so any module can be removed and the game still runs.
+
+```
+index.html
+ ├── mobile/touch-controls.js → On-screen action buttons for touch devices
+ ├── js/weapon-fx.js          → WeaponFX: first-person weapon models, hands, recoil, tracers, impacts
+ ├── js/gun-audio.js          → GunAudio: synthesized gunshots, reloads and explosions
+ ├── js/game-audio.js         → GameAudio: adaptive music, footsteps, enemy voices, pickups
+ ├── js/world-fx.js           → WorldFX: sky, skyline, arena dressing, particles and shockwaves
+ ├── js/enemy-models.js       → EnemyModels: articulated enemies and their animations
+ ├── js/battlepass.js         → BattlePass: season data, XP, missions (localStorage)
+ ├── js/game.js               → Config, state, scene, player, enemy AI, combat, HUD, game loop
+ ├── js/bp-ui.js              → Battle pass screens and in-game XP feedback
+ ├── js/menu-fx.js            → Menu interactivity layer
+ └── js/menu-tutorial.js      → Interactive controls tutorial
+
+css/
+ ├── style.css                → HUD, menus, overlays
+ ├── menu-fx.css · bp.css     → Menu effects · battle pass
+ └── game-fx.css              → Damage numbers, dash streaks, low-health vignette
+```
+
+`game.js` itself is organised in sections, one concern each:
 
 ```
 game.js
@@ -250,12 +272,63 @@ Hay un contador de FPS activable en Ajustes.
 
 ---
 
+## 🚀 Probarlo en local
+
+No hay nada que compilar: es un sitio estático.
+
+```bash
+git clone https://github.com/sebas0814s/neon-siege.git
+cd neon-siege
+npx serve .          # o:  python -m http.server 8000
+```
+
+Abre la dirección que imprime el comando (o directamente `index.html`). Hace falta conexión la primera vez: Three.js y las tipografías se cargan desde CDN. `npm install` solo es necesario para el build de Android con Capacitor.
+
+---
+
+## 🤝 Cómo colaborar
+
+**Ramas**
+
+- `main` es la versión jugable: lo que está ahí tiene que arrancar sin errores de consola.
+- `colab/onboarding` es la rama de arranque para quien se suma al proyecto: clona, cámbiate a ella y úsala para tu primer cambio y tu primer Pull Request.
+- A partir de ahí, cada tarea va en su propia rama corta creada desde `main`: `feat/descripcion-corta`, `fix/descripcion-corta`, `chore/...`.
+
+```bash
+git switch colab/onboarding          # primer día
+git switch -c feat/mi-cambio main    # cada tarea nueva
+```
+
+**Commits y Pull Requests**
+
+- [Conventional Commits](https://www.conventionalcommits.org/) en imperativo y por debajo de 72 caracteres: `fix(hud): corrige la barra del jefe en móvil`. El cuerpo explica el porqué, no repite el diff.
+- Un cambio lógico por commit; no mezcles formateo masivo con cambios de lógica.
+- PR pequeños contra `main` con: qué cambia, por qué, cómo probarlo y captura si toca algo visual.
+- No subas `node_modules/`, `android/`, builds ni binarios pesados (modelos, proyectos de otros motores).
+
+**Antes de abrir el PR**
+
+1. Juega una oleada completa y una ronda de Gun Game con la consola del navegador abierta: cero errores.
+2. Si tocaste HUD o menús, pruébalo también en vista móvil apaisada.
+3. Si tocaste render o efectos, pruébalo con Ajustes → Calidad gráfica en **Rendimiento**.
+
+**Convenciones de código**
+
+- JavaScript plano compatible con ES5 (`var`, `function`), sin dependencias nuevas salvo que se acuerde antes.
+- Un módulo nuevo es un archivo que expone un único global; `game.js` lo usa con `if (window.MiModulo)`, de forma que el juego siga funcionando sin él.
+- Nada de reservar memoria por frame: reutiliza geometrías, materiales y vectores, y usa reservas (pools) para partículas y efectos.
+- No crees ni quites luces de Three.js durante la partida: cambia el número de luces y obliga a recompilar los shaders.
+- Los números de balance viven en las tablas de configuración del principio de `game.js`, no repartidos por el código.
+- Los comentarios explican el porqué de una decisión, no lo que ya dice el código.
+
+---
+
 ## 🧱 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | 3D Rendering | [Three.js r128](https://threejs.org/) |
-| Language | Vanilla JavaScript (ES5 compatible) |
+| Language | Vanilla JavaScript (ES5 compatible), classic scripts — no build step |
 | Audio | Web Audio API (procedural synthesis) |
 | Physics | Custom (gravity, AABB clamping, raycasting) |
 | Storage | localStorage (settings, statistics) |
