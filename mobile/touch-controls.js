@@ -53,6 +53,7 @@
             border: 1px solid rgba(255,255,255,0.10);
             transition: transform 0.07s, background 0.07s, border-color 0.07s, color 0.07s;
         }
+        .t-btn .t-ico { width: 46%; height: 46%; fill: currentColor; }
         .t-btn:active {
             transform: scale(0.88);
             background: rgba(255,255,255,0.10);
@@ -118,11 +119,11 @@
     ui.id = 'touch-ui';
     ui.innerHTML = `
         <div id="joy-ring"></div>
-        <div id="tb-shoot"  class="t-btn">🔥</div>
+        <div id="tb-shoot"  class="t-btn"><svg class="t-ico"><use href="#i-target"/></svg></div>
         <div id="tb-reload" class="t-btn">R</div>
-        <div id="tb-dash"   class="t-btn">💨</div>
+        <div id="tb-dash"   class="t-btn"><svg class="t-ico"><use href="#i-dash"/></svg></div>
         <div id="tb-jump"   class="t-btn">↑</div>
-        <div id="tb-pause"  class="t-btn">⏸</div>
+        <div id="tb-pause"  class="t-btn"><svg class="t-ico"><use href="#i-pause"/></svg></div>
     `;
     document.body.appendChild(ui);
 

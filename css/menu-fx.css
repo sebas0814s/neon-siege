@@ -1,0 +1,280 @@
+/* ==========================================================================
+   NEON SIEGE — MENU FX INTERACTIVITY LAYER
+   css/menu-fx.css
+   ========================================================================== */
+
+/* ─── 1. Live Background Canvas & Content Layers ─────────────────────────── */
+#menu-fx-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1; /* Above #menu-overlay, below #menu-content */
+}
+
+#menu-content {
+    position: relative;
+    z-index: 2 !important;
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+#game-title {
+    will-change: transform;
+    cursor: default;
+    user-select: none;
+}
+
+/* ─── 2. Title Glitch Effect ─────────────────────────────────────────────── */
+#game-title.glitch-active {
+    animation: titleGlitchShift 0.18s infinite alternate;
+}
+
+@keyframes titleGlitchShift {
+    0% {
+        text-shadow: -2px 0 #ff0055, 2px 0 #00ffff, 0 0 35px var(--accent);
+        transform: translate(-1px, 0.5px);
+    }
+    50% {
+        text-shadow: 2px 0 #ff0055, -2px 0 #00ffff, 0 0 45px var(--accent);
+        transform: translate(1px, -0.5px);
+    }
+    100% {
+        text-shadow: -1px -1px #ff0055, 1px 1px #00ffff, 0 0 35px var(--accent);
+        transform: translate(0, 0);
+    }
+}
+
+/* ─── 3. Menu Buttons: Glow, Indicator, Ripple, Stagger ──────────────────── */
+.menu-btn {
+    position: relative;
+    overflow: hidden;
+    outline: none;
+}
+
+/* Focus styles for keyboard & accessibility */
+.menu-btn:focus-visible,
+.menu-btn.keyboard-focused {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 24px rgba(0, 255, 204, 0.4), inset 0 0 16px rgba(0, 255, 204, 0.12) !important;
+    color: #fff !important;
+    transform: scale(1.02);
+}
+
+/* Animated neon side indicator */
+.menu-btn-indicator {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 4px;
+    height: 0;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+    transform: translateY(-50%);
+    transition: height 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
+    opacity: 0;
+    border-radius: 0 3px 3px 0;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.menu-btn:hover .menu-btn-indicator,
+.menu-btn:focus-visible .menu-btn-indicator,
+.menu-btn.keyboard-focused .menu-btn-indicator {
+    height: 68%;
+    opacity: 1;
+}
+
+/* Click ripple */
+.menu-btn-ripple {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 255, 204, 0.55) 0%, rgba(0, 255, 204, 0) 75%);
+    transform: translate(-50%, -50%) scale(1);
+    animation: menuBtnRippleAnim 0.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 2;
+}
+
+@keyframes menuBtnRippleAnim {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.95;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(22);
+        opacity: 0;
+    }
+}
+
+/* Specular glow following mouse inside button */
+@media (hover: hover) {
+    .menu-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: radial-gradient(circle 90px at var(--mx, -999px) var(--my, -999px), rgba(0, 255, 204, 0.22), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 1;
+    }
+    .menu-btn:hover::after {
+        opacity: 1;
+    }
+}
+
+/* Stagger entrance for menu buttons */
+@keyframes menuBtnStaggerIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-24px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.btn-stagger-enter {
+    animation: menuBtnStaggerIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards !important;
+}
+
+/* ─── 4. Cards: 3D Tilt, Specular Shine & Keyboard Focus ─────────────────── */
+.mode-card,
+.diff-card {
+    outline: none;
+}
+
+.mode-card:focus-visible,
+.mode-card.keyboard-focused {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 28px rgba(0, 255, 204, 0.35), 0 10px 24px rgba(0, 0, 0, 0.5) !important;
+    transform: translateY(-4px) scale(1.02);
+}
+
+.diff-card:focus-visible,
+.diff-card.keyboard-focused {
+    border-color: var(--dcolor, #fff) !important;
+    box-shadow: 0 0 28px rgba(255, 255, 255, 0.25), 0 10px 24px rgba(0, 0, 0, 0.5) !important;
+    transform: translateY(-4px) scale(1.02);
+}
+
+@media (hover: hover) {
+    .mode-card,
+    .diff-card {
+        transform-style: preserve-3d;
+        will-change: transform;
+        transition: transform 0.12s ease-out, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .card-specular-shine {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: radial-gradient(circle 160px at var(--card-mx, 50%) var(--card-my, 50%), rgba(255, 255, 255, 0.18), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        mix-blend-mode: overlay;
+        z-index: 2;
+    }
+
+    .mode-card:hover .card-specular-shine,
+    .diff-card:hover .card-specular-shine {
+        opacity: 1;
+    }
+}
+
+@media (hover: none) {
+    .mode-card,
+    .diff-card {
+        transform: none !important;
+    }
+    .card-specular-shine {
+        display: none !important;
+    }
+}
+
+/* ─── 5. Screen Transitions & Child Stagger ──────────────────────────────── */
+@keyframes screenPanelEnter {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(12px);
+        filter: blur(4px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0px);
+    }
+}
+
+.sub-panel.menu-panel-enter,
+.win-panel.menu-panel-enter {
+    animation: screenPanelEnter 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes childStaggerIn {
+    0% {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.child-stagger-in {
+    animation: childStaggerIn 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards !important;
+}
+
+/* ─── 6. Options: Range Progress Fill & Pop Value ────────────────────────── */
+input[type="range"] {
+    background: linear-gradient(
+        to right,
+        var(--accent) 0%,
+        var(--accent) var(--fill, 50%),
+        rgba(255, 255, 255, 0.15) var(--fill, 50%),
+        rgba(255, 255, 255, 0.15) 100%
+    ) !important;
+}
+
+@keyframes optValPopAnim {
+    0% {
+        transform: scale(1);
+        color: var(--accent);
+    }
+    40% {
+        transform: scale(1.28);
+        color: #ffffff;
+        text-shadow: 0 0 12px var(--accent);
+    }
+    100% {
+        transform: scale(1);
+        color: var(--accent);
+    }
+}
+
+.opt-val {
+    display: inline-block;
+    transform-origin: right center;
+}
+
+.opt-val-pop {
+    animation: optValPopAnim 0.22s ease-out;
+}
+
+/* ─── 7. Accessibility: Prefers Reduced Motion ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

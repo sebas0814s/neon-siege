@@ -10,6 +10,9 @@ Thumbs.db
 skill_scalable-clean-code-architect.md
 SKILL.md
 
+package-lock.json
+node_modules/
+
 # Unused ES module drafts (game uses js/game.js monolith)
 js/audio.js
 js/combat.js

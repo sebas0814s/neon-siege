@@ -124,13 +124,15 @@ body.mobile-game #star-hud {
     --ch-color: #00ff00;
     --ch-size:  20px;
     --accent:   #00ffcc;
+    --font-display: 'Chakra Petch', 'Segoe UI Semibold', 'Segoe UI', sans-serif;
+    --font-body:    'IBM Plex Sans', 'Segoe UI', Tahoma, sans-serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-body);
     background: #000;
 }
 
@@ -163,9 +165,10 @@ canvas { display: block; }
 }
 
 #game-title {
-    font-size: 90px;
-    font-weight: 900;
-    letter-spacing: 10px;
+    font-family: var(--font-display);
+    font-size: 82px;
+    font-weight: 700;
+    letter-spacing: 12px;
     color: #fff;
     text-shadow: 0 0 40px var(--accent), 0 0 80px rgba(0,255,200,0.3), 3px 3px 0 #000;
     line-height: 1;
@@ -173,18 +176,25 @@ canvas { display: block; }
     animation: title-pulse 3s ease-in-out infinite alternate;
 }
 
-.title-3d {
+.title-neon {
     color: var(--accent);
-    margin-right: 6px;
+    margin-right: 4px;
+}
+.title-siege {
+    color: #fff;
+    -webkit-text-stroke: 1px rgba(0,255,204,0.35);
 }
 
+/* El glow lo da el text-shadow fijo de la regla base; aquí sólo se animan
+   opacity + transform (un text-shadow interpolado repinta el texto cada frame). */
 @keyframes title-pulse {
-    from { text-shadow: 0 0 30px var(--accent), 0 0 60px rgba(0,255,200,0.2), 3px 3px 0 #000; }
-    to   { text-shadow: 0 0 60px var(--accent), 0 0 120px rgba(0,255,200,0.4), 3px 3px 0 #000; }
+    from { opacity: .80; transform: translateY(1px) scale(.996); }
+    to   { opacity: 1;   transform: translateY(-2px) scale(1.014); }
 }
 
 #menu-subtitle {
-    font-size: 16px;
+    font-family: var(--font-display);
+    font-size: 15px;
     letter-spacing: 5px;
     color: rgba(255,255,255,0.4);
     text-transform: uppercase;
@@ -653,9 +663,9 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex; flex-direction: column; gap: 10px;
 }
 #health-bar-container {
-    position: relative; width: 250px; height: 25px;
-    background: rgba(0,0,0,0.7); border: 2px solid #fff;
-    border-radius: 3px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    position: relative; width: 196px; height: 19px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 2px; overflow: hidden;
 }
 #health-label {
     position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
@@ -993,9 +1003,10 @@ button:hover {
     letter-spacing: 4px;
 }
 
+/* Mismo motivo que title-pulse: el halo dorado es fijo, sólo late la opacidad. */
 @keyframes win-pulse {
-    from { text-shadow: 0 0 20px rgba(255,215,0,0.5), 0 0 40px rgba(255,215,0,0.2); }
-    to   { text-shadow: 0 0 50px rgba(255,215,0,0.9), 0 0 100px rgba(255,215,0,0.4); }
+    from { opacity: .74; }
+    to   { opacity: 1; }
 }
 
 .win-subtitle {
@@ -1031,13 +1042,16 @@ button:hover {
 
 #star-overlay.active {
     opacity: 1;
-    border-color: rgba(255, 215, 0, 0.6);
+    border-color: rgba(255, 215, 0, 0.75);
+    box-shadow: inset 0 0 70px rgba(255, 215, 0, 0.12);
     animation: star-border-pulse 0.6s ease-in-out infinite alternate;
 }
 
+/* Antes interpolaba border-color + box-shadow en bucle (repinta el overlay
+   entero cada frame). El borde/halo queda fijo y late sólo la opacidad. */
 @keyframes star-border-pulse {
-    from { border-color: rgba(255,215,0,0.4); box-shadow: inset 0 0 40px rgba(255,215,0,0.06); }
-    to   { border-color: rgba(255,215,0,0.9); box-shadow: inset 0 0 80px rgba(255,215,0,0.14); }
+    from { opacity: .45; }
+    to   { opacity: 1; }
 }
 
 /* ─── STAR HUD BAR ───────────────────────────────────────────────────────── */
@@ -1269,3 +1283,556 @@ button:hover {
     from { opacity: 0.7; transform: translateX(-50%) scale(0.97); }
     to   { opacity: 1.0; transform: translateX(-50%) scale(1.03); }
 }
+
+/* ── Contador de FPS y ajuste de calidad ─────────────────────────────── */
+#fps-display {
+    position: absolute; top: 10px; left: 12px;
+    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold;
+    color: #00ffcc; text-shadow: 1px 1px 2px #000;
+    background: rgba(0,0,0,0.45); padding: 2px 7px; border-radius: 4px;
+    pointer-events: none; z-index: 30; display: none;
+}
+.opt-hint {
+    margin-top: 6px; font-size: 11px; opacity: 0.6; line-height: 1.4;
+}
+
+/* ── Barra de jefe y fichas de enemigo ───────────────────────────────── */
+#boss-bar {
+    position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+    width: min(520px, 70vw); pointer-events: none; z-index: 25; text-align: center;
+}
+#boss-bar.hidden { display: none; }
+#boss-name {
+    font-family: 'Chakra Petch', 'Segoe UI', sans-serif; font-size: 15px; font-weight: 700;
+    letter-spacing: 5px; color: #ffcc00; text-shadow: 0 0 12px rgba(255,204,0,0.6); margin-bottom: 5px;
+}
+#boss-track {
+    height: 13px; background: rgba(0,0,0,0.65); border: 2px solid rgba(255,204,0,0.55);
+    border-radius: 3px; overflow: hidden;
+}
+#boss-fill {
+    height: 100%; width: 100%; background: linear-gradient(90deg,#ff3300,#ffcc00);
+    transition: width 0.15s linear;
+}
+#enemy-card {
+    position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 12px; align-items: center; max-width: 260px;
+    background: rgba(6,6,16,0.82); border: 2px solid #3366cc; border-radius: 4px;
+    padding: 12px 14px; z-index: 26; pointer-events: none;
+    animation: cardIn 0.25s ease-out;
+}
+#enemy-card.hidden { display: none; }
+#card-chip { width: 12px; align-self: stretch; border-radius: 2px; background: #3366cc; }
+#card-label {
+    font-size: 9px; letter-spacing: 3px; color: #9aa3b8; margin-bottom: 3px;
+}
+#card-name {
+    font-family: 'Chakra Petch', 'Segoe UI', sans-serif; font-size: 18px; font-weight: 700;
+    letter-spacing: 2px; color: #fff; margin-bottom: 4px;
+}
+#card-desc { font-size: 12px; line-height: 1.45; color: #c3cad9; }
+@keyframes cardIn { from { opacity: 0; transform: translate(16px,-50%); } to { opacity: 1; transform: translate(0,-50%); } }
+
+/* ── Identidad: iconografía y HUD unificado ──────────────────────────── */
+.ico {
+    width: 1em; height: 1em; flex: none;
+    fill: currentColor; vertical-align: -0.12em;
+}
+.menu-btn { font-family: var(--font-display); display: flex; align-items: center; gap: 12px; }
+.menu-btn .ico { width: 18px; height: 18px; opacity: 0.9; }
+
+/* Sin backdrop-filter: en moviles obliga a recomponer el panel entero cada
+   vez que algo dentro cambia. El fondo mas opaco compensa la nitidez. */
+#hud-panel {
+    display: flex; flex-direction: column; gap: 9px;
+    background: rgba(4,6,14,0.8);
+    border: 1px solid rgba(0,255,204,0.18);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px; padding: 12px 16px 12px 13px;
+}
+.hud-row { display: flex; align-items: center; gap: 11px; }
+.hud-ico { width: 19px; height: 19px; opacity: 0.85; }
+.ico-hp   { color: #00ff88; }
+.ico-ammo { color: #cfd6e6; }
+.ico-coin { color: #ffd700; }
+#health-label {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-display); font-size: 13px; font-weight: 700;
+    color: #fff; text-shadow: 1px 1px 3px #000; z-index: 1; left: auto;
+}
+#ammo-display {
+    font-family: var(--font-display); font-size: 25px; font-weight: 700;
+    color: #fff; letter-spacing: 1px; font-variant-numeric: tabular-nums;
+    text-shadow: 1px 1px 6px #000;
+}
+#ammo-reserve {
+    font-family: var(--font-display); font-size: 14px; font-weight: 600;
+    color: #6f7891; font-variant-numeric: tabular-nums; padding-top: 6px;
+}
+#money-display {
+    font-family: var(--font-display); font-size: 21px; font-weight: 700;
+    color: #ffd700; font-variant-numeric: tabular-nums; text-shadow: 1px 1px 6px #000;
+}
+#money-row.hidden { display: none; }
+#wave-display, #kill-display, #weapon-display {
+    font-family: var(--font-display); display: flex; align-items: center; gap: 9px;
+}
+#wave-display .ico { width: 17px; height: 17px; }
+#kill-display .ico { width: 16px; height: 16px; }
+#weapon-display .ico { width: 18px; height: 18px; opacity: 0.75; }
+#kill-value, #wave-value { font-variant-numeric: tabular-nums; }
+#diff-display { font-family: var(--font-display); letter-spacing: 2px; }
+#reload-indicator { font-family: var(--font-display); letter-spacing: 4px; }
+#gg-weapon-name { font-family: var(--font-display); }
+
+/* ── Armería: secciones y mejoras ────────────────────────────────────── */
+.shop-section-label {
+    font-family: var(--font-display); font-size: 11px; letter-spacing: 4px;
+    color: var(--accent); opacity: 0.8; margin: 14px 0 8px; text-align: left;
+}
+#upgrade-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.upgrade-item .upips { font-size: 13px; letter-spacing: 3px; color: var(--accent); margin-bottom: 6px; }
+.upgrade-item.equipped .upips { color: #ffd700; }
+#buy-menu h2, #pause-menu h1 { font-family: var(--font-display); letter-spacing: 6px; }
+
+/* ── Buffs activos ──────────────────────────────────────────────────── */
+#buff-row {
+    position: absolute; top: 186px; right: 20px;
+    display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+    z-index: 24; pointer-events: none;
+}
+#buff-row.hidden { display: none; }
+.buff {
+    font-family: var(--font-display); font-size: 12px; font-weight: 700;
+    letter-spacing: 2px; padding: 4px 10px; border: 1px solid currentColor;
+    border-radius: 2px; background: rgba(4,6,14,0.66);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Regla de oleada activa ─────────────────────────────────────────── */
+#mod-display {
+    position: absolute; top: 76px; left: 20px;
+    font-family: var(--font-display); font-size: 12px; font-weight: 600;
+    letter-spacing: 3px; color: #ff9d3c;
+    background: rgba(4,6,14,0.6); border: 1px solid rgba(255,157,60,0.4);
+    padding: 4px 12px; border-radius: 2px; white-space: nowrap;
+    z-index: 24; pointer-events: none;
+}
+#mod-display.hidden { display: none; }
+
+/* ── Tutorial in-game y pantalla de muerte ───────────────────────────── */
+#tutorial-hint {
+    position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-display); font-size: 19px; font-weight: 600;
+    letter-spacing: 2px; color: #fff;
+    background: rgba(4,6,14,0.72); border: 1px solid rgba(0,255,204,0.45);
+    border-radius: 3px; padding: 10px 22px; white-space: nowrap;
+    box-shadow: 0 0 24px rgba(0,255,204,0.15);
+    z-index: 28; pointer-events: none;
+    animation: tutIn 0.3s ease-out;
+}
+#tutorial-hint.hidden { display: none; }
+@keyframes tutIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.go-headline {
+    font-family: var(--font-display); font-size: 21px; font-weight: 700;
+    letter-spacing: 1px; color: #fff; margin-bottom: 18px;
+}
+.go-headline.record { color: #ffd700; text-shadow: 0 0 18px rgba(255,215,0,0.5); }
+.go-headline.close  { color: #00ffcc; }
+.go-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;
+}
+.go-grid > div {
+    font-size: 11px; letter-spacing: 1px; color: #9aa3b8; text-transform: uppercase;
+    background: rgba(255,255,255,0.04); border-radius: 3px; padding: 10px 6px;
+}
+.go-grid span {
+    display: block; font-family: var(--font-display); font-size: 24px; font-weight: 700;
+    color: #fff; margin-bottom: 4px; text-transform: none; font-variant-numeric: tabular-nums;
+}
+.go-diff { font-family: var(--font-display); font-size: 12px; letter-spacing: 3px; color: #6f7891; }
+@media (max-width: 720px) { .go-grid { grid-template-columns: repeat(2, 1fr); } #tutorial-hint { font-size: 15px; white-space: normal; max-width: 80vw; text-align: center; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ░░░  CAPA DE MOVIMIENTO  ░░░
+   Se apoya encima del diseño original sin tocar su maquetación: aquí sólo
+   viven `transform`, `opacity`, `color`, `background-color` y `border-color`.
+
+   Reglas que cumple este bloque (obligatorias):
+     · Se animan únicamente `transform` y `opacity`. Ningún `transition`
+       incluye box-shadow / filter / width / height / top / left: los brillos
+       se hacen con pseudo-elementos que se desplazan con `transform`.
+     · `will-change` sólo donde el pop es puntual (hit-marker, wave-announce,
+       reload-indicator). Nunca en listas de botones ni en el HUD completo.
+     · `animation-fill-mode: backwards` y nunca `forwards`: al terminar, el
+       elemento vuelve a su estilo normal, así :hover / :active / .active
+       siguen mandando y nada se queda "pegado" en un estado final.
+     · Todo lo que depende de `:hover` va dentro de `@media (hover: hover)`:
+       en táctil no existen estados pegados y nada esencial usa hover.
+     · No se añade ningún `backdrop-filter` nuevo.
+     · No se declaran propiedades de layout (padding/font-size/width…): los
+       overrides de móvil siguen mandando porque estas reglas no los tocan.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --ease-out: cubic-bezier(.22, .61, .36, 1);   /* deceleración suave      */
+    --ease-pop: cubic-bezier(.34, 1.32, .64, 1);  /* entrada con rebote leve */
+    --t-ui:     .17s;                            /* hover / press genérico  */
+}
+
+/* ─── 1 · BOTONES ───────────────────────────────────────────────────────── */
+
+/* `transition: all` original sustituido por una lista explícita de lo barato. */
+:is(.menu-btn, .btn-back, .btn-danger, .toggle-btn, .size-btn, .swatch,
+    #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+    #restart-game, #btn-menu-from-over, .weapon-item)
+{
+    transition:
+        transform        var(--t-ui) var(--ease-out),
+        opacity          var(--t-ui) linear,
+        color            var(--t-ui) linear,
+        background-color var(--t-ui) linear,
+        border-color     var(--t-ui) linear;
+}
+
+/* El barrido neón necesita un contexto de posicionamiento y que se le recorte
+   al botón; ambos son inocuos aquí (texto plano, sin hijos absolutos). */
+:is(.btn-back, .btn-danger, .toggle-btn, .size-btn,
+    #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+    #restart-game, #btn-menu-from-over)
+{
+    position: relative;
+    overflow: hidden;
+}
+/* Las fichas de la armería NO se recortan: son ítems de un grid y con
+   `overflow` distinto de `visible` su ancho mínimo automático pasa a 0, lo que
+   redistribuiría las columnas en pantallas estrechas. Su brillo se mantiene
+   dentro del caja, así que no necesitan clip. */
+.weapon-item { position: relative; }
+
+/* Barrido: una banda de luz que cruza el botón sólo con `transform`. */
+:is(.menu-btn, .btn-back, .btn-danger, .toggle-btn, .size-btn,
+    #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+    #restart-game, #btn-menu-from-over)::after
+{
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg,
+        transparent 0%, transparent 36%,
+        var(--sweep, rgba(0, 255, 204, .40)) 50%,
+        transparent 64%, transparent 100%);
+    opacity: 0;
+    transform: translate3d(-118%, 0, 0);
+    transition: transform .42s var(--ease-out), opacity .26s linear;
+}
+
+/* La ficha no puede usar la banda: sin `overflow: hidden` se saldría de la caja.
+   Se sustituye por un halo que florece desde el centro, siempre dentro. */
+.weapon-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(115% 100% at 50% 0%,
+        var(--sweep, rgba(0, 255, 204, .40)) 0%, transparent 72%);
+    opacity: 0;
+    transform: scale(.84);
+    transition: transform .34s var(--ease-out), opacity .26s linear;
+}
+
+.menu-btn::after      { --sweep: rgba(0, 255, 204, .42); }
+.btn-back::after      { --sweep: rgba(255, 255, 255, .30); }
+.btn-danger::after    { --sweep: rgba(255, 90, 90, .40); }
+.toggle-btn::after,
+.size-btn::after,
+#close-shop::after,
+#resume-game::after,
+#btn-opts-pause::after,
+#btn-menu-from-pause::after,
+#restart-game::after,
+#btn-menu-from-over::after,
+.weapon-item::after          { --sweep: rgba(0, 255, 204, .40); }
+.toggle-btn.off::after       { --sweep: rgba(255, 77, 77, .42); }
+.weapon-item.locked::after   { --sweep: transparent; }   /* sin brillo si no llega */
+
+/* El barrido se dispara con hover… */
+@media (hover: hover) {
+    :is(.menu-btn, .btn-back, .btn-danger, .toggle-btn, .size-btn,
+        #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+        #restart-game, #btn-menu-from-over):hover::after
+    {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+    .weapon-item:hover::after { transform: scale(1); opacity: .55; }
+}
+/* …o con el foco de teclado, disponible también en táctil. */
+:is(.menu-btn, .btn-back, .btn-danger, .toggle-btn, .size-btn,
+    #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+    #restart-game, #btn-menu-from-over):focus-visible::after
+{
+    transform: translate3d(0, 0, 0);
+    opacity: .8;
+}
+.weapon-item:focus-visible::after { transform: scale(1); opacity: .45; }
+
+/* ── Colores y micro-zoom al pasar el ratón (sólo puntero fino) ── */
+@media (hover: hover) {
+    .menu-btn:hover,
+    .btn-back:hover,
+    .size-btn:hover {
+        color: #fff;
+        border-color: var(--accent);
+        background-color: rgba(0, 255, 200, .09);
+        transform: scale(1.02);
+    }
+    .menu-btn.primary:hover {
+        background-color: rgba(0, 255, 200, .20);
+        color: #b8fff2;
+        transform: scale(1.03);
+    }
+    .btn-back:hover  { background-color: rgba(255, 255, 255, .08); }
+    .btn-danger:hover {
+        background-color: rgba(255, 50, 50, .16);
+        border-color: #ff3333;
+        color: #ff9999;
+        transform: scale(1.01);
+    }
+    .toggle-btn.on:hover {
+        background-color: rgba(0, 255, 200, .20);
+        color: #b8fff2;
+        transform: scale(1.04);
+    }
+    .toggle-btn.off:hover {
+        background-color: rgba(255, 50, 50, .16);
+        color: #ffaaaa;
+        transform: scale(1.04);
+    }
+    #close-shop:hover,
+    #resume-game:hover,
+    #btn-opts-pause:hover,
+    #btn-menu-from-pause:hover,
+    #restart-game:hover,
+    #btn-menu-from-over:hover {
+        background-color: rgba(0, 74, 74, .95);
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: scale(1.03);
+    }
+    .weapon-item:hover { transform: scale(1.04); }
+}
+
+/* ── Press: escala ~0.96, también en táctil ── */
+:is(.menu-btn, .btn-back, .size-btn, .toggle-btn, #close-shop,
+    #resume-game, #btn-opts-pause, #btn-menu-from-pause, #restart-game,
+    #btn-menu-from-over, .weapon-item):active { transform: scale(.96); }
+.btn-danger:active   { transform: scale(.975); }
+.swatch:active       { transform: scale(.92); }
+/* Estas dos tienen :hover de clase + :hover de clase, así que necesitan su
+   propio :active para no quedarse en el zoom del hover. */
+.menu-btn.primary:active { transform: scale(.96); }
+.toggle-btn.on:active,
+.toggle-btn.off:active   { transform: scale(.94); }
+
+/* ── Foco visible (teclado) ── */
+:is(.menu-btn, .btn-back, .btn-danger, .toggle-btn, .size-btn, .swatch,
+    #close-shop, #resume-game, #btn-opts-pause, #btn-menu-from-pause,
+    #restart-game, #btn-menu-from-over):focus-visible
+{
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+.btn-danger:focus-visible { outline-color: #ff6666; }
+
+/* ── Iconos ── */
+.ico {
+    transition: transform .18s var(--ease-out), opacity .18s linear, color .18s linear;
+}
+@media (hover: hover) {
+    .menu-btn:hover .ico { transform: translateX(3px) scale(1.12); opacity: 1; }
+}
+.menu-btn:active .ico         { transform: translateX(1px) scale(.94); }
+.menu-btn:focus-visible .ico  { transform: scale(1.08); opacity: 1; }
+
+/* ─── 2 · TARJETAS · MODO, DIFICULTAD Y ARMERÍA ─────────────────────────── */
+
+.mode-card,
+.diff-card {
+    transition:
+        transform        .22s var(--ease-out),
+        opacity          .22s linear,
+        border-color     .22s linear,
+        background-color .22s linear;
+}
+
+/* Halo interior que se desliza: pseudo-elemento, no box-shadow en transición. */
+.mode-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(130% 90% at 50% 0%, rgba(0, 255, 200, .45) 0%, transparent 62%),
+        linear-gradient(160deg, rgba(0, 255, 200, .40) 0%, transparent 70%);
+    opacity: 0;
+    transform: none;
+    transition: opacity .26s linear, transform .40s var(--ease-out);
+}
+.diff-card::before {
+    transition: opacity .26s linear, transform .40s var(--ease-out);
+}
+
+.diff-card.active::before { opacity: .12; }
+.mode-card:hover::before,
+.diff-card:hover::before {
+    opacity: .22;
+    transform: translate3d(3%, -6%, 0);
+}
+
+@media (hover: hover) {
+    .weapon-item:hover { border-color: rgba(0, 255, 200, .45); }
+}
+.mode-card:active,
+.diff-card:active { transform: translateY(-1px) scale(.985); }
+
+/* ─── 3 · ENTRADA DE PANTALLAS ──────────────────────────────────────────── */
+/*
+   Las subpantallas se ocultan con `.hidden` (display:none), así que al
+   quitar la clase la animación arranca sola, y `backwards` evita el flash
+   del estado inicial. Los overlays con backdrop-filter NO se animan: reblurring
+   en cada frame sería lo más caro de toda la interfaz.
+*/
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(18px) scale(.96); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes rowIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes menuItemIn {
+    from { opacity: 0; transform: translateX(-22px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes centerIn {
+    from { opacity: 0; transform: translate(-50%, -44%) scale(.93); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Menú principal + entrada escalonada de sus botones */
+#menu-content            { animation: panelIn .30s var(--ease-out) backwards; }
+#menu-subtitle           { animation: rowIn .26s var(--ease-out) backwards; animation-delay: .02s; }
+#menu-buttons > *        { animation: menuItemIn .32s var(--ease-out) backwards; }
+#menu-buttons > :nth-child(1) { animation-delay: .05s; }
+#menu-buttons > :nth-child(2) { animation-delay: .10s; }
+#menu-buttons > :nth-child(3) { animation-delay: .15s; }
+#menu-buttons > :nth-child(4) { animation-delay: .20s; }
+#menu-buttons > :nth-child(5) { animation-delay: .25s; }
+#menu-buttons > :nth-child(6) { animation-delay: .30s; }
+#menu-footer             { animation: rowIn .26s var(--ease-out) backwards; animation-delay: .34s; }
+
+/* Subpantallas: modo, dificultad, tutorial, estadísticas, opciones */
+.sub-panel               { animation: panelIn .28s var(--ease-out) backwards; }
+.sub-panel > *           { animation: rowIn .26s var(--ease-out) backwards; }
+.sub-panel > :nth-child(1)  { animation-delay: .03s; }
+.sub-panel > :nth-child(2)  { animation-delay: .06s; }
+.sub-panel > :nth-child(3)  { animation-delay: .09s; }
+.sub-panel > :nth-child(4)  { animation-delay: .12s; }
+.sub-panel > :nth-child(5)  { animation-delay: .15s; }
+.sub-panel > :nth-child(6)  { animation-delay: .18s; }
+.sub-panel > :nth-child(7)  { animation-delay: .21s; }
+.sub-panel > :nth-child(8)  { animation-delay: .24s; }
+.sub-panel > :nth-child(9)  { animation-delay: .27s; }
+.sub-panel > :nth-child(10) { animation-delay: .30s; }
+.sub-panel > :nth-child(11) { animation-delay: .33s; }
+.sub-panel > :nth-child(12) { animation-delay: .36s; }
+
+/* Victoria (Gun Game) */
+#win-screen .win-panel     { animation: panelIn .32s var(--ease-out) backwards; }
+#win-screen .menu-btn      { animation: menuItemIn .30s var(--ease-out) backwards; }
+#win-screen .menu-btn:nth-of-type(1) { animation-delay: .18s; }
+#win-screen .menu-btn:nth-of-type(2) { animation-delay: .24s; }
+
+/* Menús flotantes en partida: armería, pausa y game over */
+#buy-menu, #pause-menu, #game-over { animation: centerIn .22s var(--ease-pop) backwards; }
+#buy-menu > *, #pause-menu > *, #game-over > * {
+    animation: rowIn .22s var(--ease-out) backwards;
+}
+#buy-menu   > :nth-child(1), #pause-menu > :nth-child(1), #game-over > :nth-child(1) { animation-delay: .04s; }
+#buy-menu   > :nth-child(2), #pause-menu > :nth-child(2), #game-over > :nth-child(2) { animation-delay: .08s; }
+#buy-menu   > :nth-child(3), #pause-menu > :nth-child(3), #game-over > :nth-child(3) { animation-delay: .12s; }
+#buy-menu   > :nth-child(4), #pause-menu > :nth-child(4), #game-over > :nth-child(4) { animation-delay: .16s; }
+#buy-menu   > :nth-child(5), #pause-menu > :nth-child(5), #game-over > :nth-child(5) { animation-delay: .20s; }
+#buy-menu   > :nth-child(6), #pause-menu > :nth-child(6), #game-over > :nth-child(6) { animation-delay: .24s; }
+#buy-menu   > :nth-child(7), #pause-menu > :nth-child(7), #game-over > :nth-child(7) { animation-delay: .28s; }
+/* Las fichas de la armería NO se animan al entrar: populateShop() las recrea en
+   cada compra y volverían a animarse todas en cada clic. */
+
+/* ─── 4 · POPS DEL HUD ──────────────────────────────────────────────────── */
+/* Sólo opacidad/transform, y nada infinito salvo el pulso de recarga, que ya
+   era opacidad. will-change únicamente en estos tres elementos puntuales. */
+#wave-announce { will-change: transform, opacity; }
+
+#hit-marker {
+    animation: hitPop .13s ease-out;
+    will-change: transform, opacity;
+}
+@keyframes hitPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(.5) rotate(-10deg); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22) rotate(0deg); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+#reload-indicator {
+    animation: reloadPop .26s var(--ease-pop) backwards,
+               reload-pulse .6s ease-in-out .26s infinite alternate;
+    will-change: transform, opacity;
+}
+/* Sólo transform: si el pop animara opacity, al terminar se vería el salto
+   entre 1 y el .80 que pone body.mobile-game #reload-indicator. */
+@keyframes reloadPop {
+    from { transform: translateX(-50%) scale(.78); }
+    to   { transform: translateX(-50%) scale(1); }
+}
+
+/* ─── 5 · MOVIMIENTO REDUCIDO ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+    /* El overlay de daño es información, no decoración: sin animación se queda
+       visible durante los 300 ms que el JS lo mantiene en pantalla. */
+    #damage-overlay {
+        animation: none !important;
+        opacity: .6 !important;
+    }
+    /* El emoji del aviso de rotación se queda quieto en su sitio. */
+    #rotate-phone { animation: none !important; }
+}
+
+/* ── Menús sin emoji: iconos del sprite, escala de dificultad y viñetas ── */
+.mode-emoji .ico { color: var(--accent); filter: drop-shadow(0 0 10px rgba(0,255,204,0.35)); }
+.gg-mode-card .mode-emoji .ico { color: #FFD700; filter: drop-shadow(0 0 10px rgba(255,215,0,0.35)); }
+.diff-emoji {
+    font-family: var(--font-display); font-size: 22px; letter-spacing: 3px;
+    color: var(--dcolor, #fff); text-shadow: 0 0 10px var(--dcolor, transparent);
+}
+.mode-features li, .diff-stats li, .tips-box li { position: relative; padding-left: 14px; }
+.mode-features li::before, .diff-stats li::before, .tips-box li::before {
+    content: ''; position: absolute; left: 0; top: 0.8em;
+    top: calc(0.5lh - 2.5px);
+    width: 5px; height: 5px; background: var(--accent); opacity: 0.7;
+}
+.diff-stats li::before { background: var(--dcolor, var(--accent)); }
+.gg-mode-card .mode-features li::before { background: #FFD700; }
+.win-title .ico, #game-over h1 .ico { margin-right: 0.25em; vertical-align: -0.1em; }
+#rotate-phone .ico { color: var(--accent); }
+#btn-opts-pause .ico { vertical-align: -0.15em; }
+@media (max-height: 500px), (max-width: 700px) { .diff-emoji { font-size: 16px; } }

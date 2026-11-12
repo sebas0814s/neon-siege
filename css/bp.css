@@ -1,0 +1,858 @@
+/* ============================================================================
+ * NEON SIEGE — PASE DE BATALLA
+ * css/bp.css  (se enlaza en <head> después de css/style.css)
+ *
+ * Cubre: botón del menú, etiqueta de título, panel del pase (recompensas,
+ * misiones, vestidor) y el feedback en partida (popups de XP, banner de nivel,
+ * avisos de misión y barra de progreso).
+ * ==========================================================================*/
+
+/* ─── Tokens del pase ─────────────────────────────────────────────────────── */
+:root {
+    --bp-r-comun:      #8a93a5;
+    --bp-r-raro:       #3fa9ff;
+    --bp-r-epico:      #b44cff;
+    --bp-r-legendario: #ffd23f;
+    --bp-panel-w:      860px;
+    --bp-line:         rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================================
+ * 1. BOTÓN "PASE" DEL MENÚ PRINCIPAL
+ * ==========================================================================*/
+#btn-battlepass .bp-btn-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 0;
+}
+
+/* Barra de progreso del nivel: absoluta para no hacer crecer el botón. */
+#btn-battlepass .bp-btn-track {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 7px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    z-index: 4;
+}
+#btn-battlepass .bp-btn-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent), #ffffff);
+    box-shadow: 0 0 8px var(--accent);
+    transition: width 0.3s ease;
+}
+
+/* Contador de recompensas sin ver. */
+#btn-battlepass .bp-badge {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: #08101a;
+    background: var(--accent);
+    border-radius: 10px;
+    box-shadow: 0 0 12px rgba(0, 255, 204, 0.6);
+    z-index: 5;
+}
+#btn-battlepass .bp-badge[hidden] { display: none; }
+
+/* ─── Etiqueta de título equipado bajo el subtítulo ───────────────────────── */
+#bp-title-tag {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 12px rgba(0, 255, 204, 0.35);
+    /* #menu-content es flex column: los márgenes no colapsan. El subtítulo deja
+       50px; se reparten 10 arriba + la altura del tag + 24 abajo. */
+    margin: -40px 0 24px;
+    min-height: 16px;
+    text-align: center;
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#bp-title-tag:empty { display: none; }
+
+/* ============================================================================
+ * 2. PANEL DEL PASE
+ * ==========================================================================*/
+.sub-panel.bp-panel {
+    width: min(var(--bp-panel-w), 96vw);
+    max-width: 96vw;
+    padding: 26px 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.sub-panel.bp-panel h2 { margin-bottom: 4px; }
+
+/* ─── Cabecera ────────────────────────────────────────────────────────────── */
+.bp-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.bp-season {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(0, 255, 204, 0.35);
+}
+.bp-head-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.bp-level {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+}
+.bp-free {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--bp-line);
+    border-radius: 10px;
+    padding: 2px 10px;
+    white-space: nowrap;
+}
+.bp-xp-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(0, 255, 204, 0.18);
+    overflow: hidden;
+}
+.bp-xp-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #0099bb, var(--accent));
+    box-shadow: 0 0 12px rgba(0, 255, 204, 0.55);
+    transition: width 0.3s ease;
+}
+.bp-xp-text {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Pestañas ────────────────────────────────────────────────────────────── */
+.bp-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--bp-line);
+    padding-bottom: 8px;
+}
+.bp-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 6px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.18s, background 0.18s, border-color 0.18s;
+}
+.bp-tab:hover { color: #fff; background: rgba(0, 255, 200, 0.07); }
+.bp-tab.is-active {
+    color: var(--accent);
+    background: rgba(0, 255, 200, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 18px rgba(0, 255, 204, 0.18);
+}
+.bp-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Rarezas ─────────────────────────────────────────────────────────────── */
+.bp-r-comun      { --bp-rc: var(--bp-r-comun); }
+.bp-r-raro       { --bp-rc: var(--bp-r-raro); }
+.bp-r-epico      { --bp-rc: var(--bp-r-epico); }
+.bp-r-legendario { --bp-rc: var(--bp-r-legendario); }
+
+.bp-card-rarity, .bp-ward-rarity, .bp-banner-rarity, .bp-mission-reward em {
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--bp-rc, var(--bp-r-comun));
+}
+
+/* ============================================================================
+ * 3. RECOMPENSAS (pista horizontal)
+ * ==========================================================================*/
+.bp-track {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    padding: 4px 2px 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 204, 0.35) transparent;
+}
+.bp-track::-webkit-scrollbar { height: 6px; }
+.bp-track::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 204, 0.35);
+    border-radius: 3px;
+}
+.bp-track::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+
+.bp-card {
+    flex: 0 0 auto;
+    width: 148px;
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px 12px;
+    font-family: var(--font-display);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--bp-line);
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.16s, border-color 0.16s, background 0.16s;
+}
+/* Brillo de rareza: capa aparte, se anima sólo opacity (no repinta texto). */
+.bp-card::after, .bp-ward::after, .bp-banner-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(120deg, transparent 30%, var(--bp-rc, #fff) 50%, transparent 70%);
+    opacity: 0;
+    mix-blend-mode: screen;
+}
+.bp-r-legendario.bp-card::after,
+.bp-r-legendario.bp-ward::after,
+.bp-r-legendario.bp-banner-card::after {
+    box-shadow: inset 0 0 18px rgba(255, 210, 63, 0.35);
+    animation: bpShine 2.6s ease-in-out infinite;
+}
+@keyframes bpShine {
+    0%, 100% { opacity: 0.10; }
+    50%      { opacity: 0.34; }
+}
+.bp-card:hover:not([data-locked]) {
+    transform: translateY(-3px);
+    border-color: var(--bp-rc, var(--accent));
+    background: rgba(255, 255, 255, 0.07);
+}
+.bp-card:focus-visible { outline: 2px solid var(--bp-rc, var(--accent)); outline-offset: 2px; }
+.bp-card.is-equipped { border-color: var(--bp-rc, var(--accent)); background: rgba(0, 255, 200, 0.08); }
+
+.bp-card-level {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.5);
+}
+.bp-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.2;
+}
+.bp-card[data-locked] { opacity: 0.5; cursor: default; }
+.bp-card[data-locked] .bp-card-name { color: rgba(255, 255, 255, 0.6); }
+
+.bp-new-tag {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #08101a;
+    background: var(--accent);
+    border-radius: 3px;
+    z-index: 2;
+}
+
+/* Candado (cuerpo + arco) dibujado en CSS. */
+.bp-lock {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 26px;
+    height: 30px;
+    transform: translate(-50%, -60%);
+    pointer-events: none;
+    z-index: 2;
+}
+.bp-lock::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    transform: translateX(-50%);
+    border: 3px solid rgba(255, 255, 255, 0.75);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+}
+.bp-lock::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 3px;
+}
+
+/* ─── Arte de las recompensas ─────────────────────────────────────────────── */
+.bp-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 64px;
+    font-size: 34px;          /* unidad de escala de las formas de mira */
+}
+
+/* Skin: silueta de arma con degradado body → accent. */
+.bp-art-skin {
+    background: linear-gradient(160deg, var(--skin-body) 0%, var(--skin-accent) 100%);
+    clip-path: polygon(
+        4% 46%, 46% 46%, 52% 34%, 88% 34%, 88% 44%, 96% 44%, 96% 56%, 84% 56%,
+        84% 66%, 60% 66%, 54% 78%, 34% 78%, 40% 66%, 22% 66%, 16% 78%, 4% 78%
+    );
+    filter: drop-shadow(0 0 10px var(--skin-accent, var(--accent)));
+}
+
+/* Tracer: línea del color del trazador. */
+.bp-art-tracer { height: 64px; }
+.bp-tracer-line {
+    display: block;
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--tracer, var(--accent));
+    box-shadow: 0 0 14px var(--tracer, var(--accent));
+}
+.bp-tracer-line.is-rainbow {
+    background: linear-gradient(90deg, #ff0040, #ffd23f, #4dff4d, #00eeff, #b44cff, #ff0040);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
+    animation: bpRainbow 3s linear infinite;
+}
+@keyframes bpRainbow {
+    from { background-position: 0 0; }
+    to   { background-position: 300% 0; }
+}
+
+/* Título: el propio nombre hace de icono. */
+.bp-art-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--bp-rc, #fff);
+    text-shadow: 0 0 12px var(--bp-rc, transparent);
+    padding: 0 4px;
+}
+
+/* ============================================================================
+ * 4. MISIONES
+ * ==========================================================================*/
+.bp-missions, .bp-wardrobe {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 100%;
+}
+.bp-section { min-width: 0; }
+.bp-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.bp-section-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent);
+}
+.bp-section-tag {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.45);
+    font-variant-numeric: tabular-nums;
+}
+
+.bp-mission-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.bp-mission {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--bp-line);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+}
+.bp-mission.is-done { border-left-color: #00ff88; background: rgba(0, 255, 136, 0.06); }
+.bp-mission-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+.bp-mission-text { font-size: 14px; color: #fff; }
+.bp-mission.is-done .bp-mission-text { color: rgba(255, 255, 255, 0.6); }
+.bp-mission-xp {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    white-space: nowrap;
+}
+.bp-mission-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+.bp-mission-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #0099bb, var(--accent));
+    transition: width 0.25s ease;
+}
+.bp-mission-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.45);
+    font-variant-numeric: tabular-nums;
+}
+.bp-mission-check { color: #00ff88; font-size: 14px; font-weight: 700; }
+.bp-mission-reward {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    border-top: 1px dashed var(--bp-line);
+    padding-top: 6px;
+}
+.bp-mission-reward b { font-weight: 700; color: rgba(255, 255, 255, 0.5); }
+
+/* ============================================================================
+ * 5. VESTIDOR
+ * ==========================================================================*/
+.bp-ward-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 8px;
+}
+.bp-ward {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 8px 6px 10px;
+    font-family: var(--font-display);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--bp-line);
+    border-radius: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.16s, border-color 0.16s, background 0.16s;
+}
+.bp-ward .bp-art { height: 46px; font-size: 26px; }
+.bp-ward .bp-art-skin { clip-path: none; height: 14px; width: 84%; }
+.bp-ward-name { font-size: 12px; font-weight: 700; line-height: 1.2; }
+.bp-ward:hover:not([data-locked]) {
+    transform: translateY(-2px);
+    border-color: var(--bp-rc, var(--accent));
+    background: rgba(255, 255, 255, 0.07);
+}
+.bp-ward:focus-visible { outline: 2px solid var(--bp-rc, var(--accent)); outline-offset: 2px; }
+.bp-ward.is-equipped {
+    border-color: var(--bp-rc, var(--accent));
+    background: rgba(0, 255, 200, 0.1);
+    box-shadow: inset 0 0 14px rgba(0, 255, 204, 0.12);
+}
+.bp-ward[data-locked] { opacity: 0.5; cursor: default; }
+.bp-ward-lock {
+    margin-top: 2px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+}
+.bp-ward-on {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #08101a;
+    background: var(--accent);
+    border-radius: 3px;
+    padding: 1px 5px;
+    z-index: 2;
+}
+
+/* ============================================================================
+ * 6. FEEDBACK EN PARTIDA
+ * ==========================================================================*/
+.bp-fx {
+    position: fixed;
+    inset: 0;
+    z-index: 150;                 /* por encima del HUD, por debajo de menús */
+    pointer-events: none;
+    display: none;
+    font-family: var(--font-display);
+}
+.bp-fx.is-on { display: block; }
+
+/* ─── Barra de XP del nivel (3px, borde inferior) ─────────────────────────── */
+.bp-game-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 6px rgba(0, 255, 204, 0.25);
+}
+.bp-game-bar-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #0099bb, var(--accent));
+    box-shadow: 0 0 10px var(--accent);
+    transition: width 0.3s ease;
+}
+
+/* ─── Popups de XP (junto a la mira, como en los shooters actuales) ───────── */
+.bp-xp-feed {
+    position: absolute;
+    left: calc(50% + 46px);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+.bp-xp-popup {
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    background: rgba(4, 6, 14, 0.72);
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    border-radius: 4px;
+    text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+    white-space: nowrap;
+}
+.bp-pop { animation: bpPopup 1.5s ease-out forwards; }
+@keyframes bpPopup {
+    0%   { opacity: 0; transform: translateY(10px) scale(0.9); }
+    18%  { opacity: 1; transform: translateY(0) scale(1); }
+    75%  { opacity: 1; transform: translateY(-10px) scale(1); }
+    100% { opacity: 0; transform: translateY(-26px) scale(0.96); }
+}
+
+/* ─── Aviso de misión completada (arriba, centrada) ──────────────────────── */
+.bp-toasts {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(420px, 88vw);
+}
+.bp-toast {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 18px;
+    background: rgba(4, 6, 14, 0.85);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: 0 0 24px rgba(0, 255, 204, 0.2);
+    text-align: center;
+}
+.bp-toast-head { font-size: 10px; font-weight: 700; letter-spacing: 3px; color: var(--accent); }
+.bp-toast-body { font-size: 14px; color: #fff; }
+.bp-toast-xp  { font-size: 12px; font-weight: 700; color: #00ff88; }
+
+/* ─── Banner de nivel (centro) ────────────────────────────────────────────── */
+.bp-banner {
+    position: absolute;
+    left: 50%;
+    top: 70%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    max-width: 92vw;
+}
+.bp-banner-title {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 24px var(--accent), 0 0 60px rgba(0, 255, 204, 0.5), 3px 3px 0 #000;
+    white-space: nowrap;
+}
+.bp-banner-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 26px;
+    background: rgba(6, 8, 18, 0.9);
+    border: 1px solid var(--bp-rc, var(--accent));
+    border-radius: 8px;
+    box-shadow: 0 0 28px var(--bp-rc, rgba(0, 255, 204, 0.4));
+    overflow: hidden;
+}
+.bp-banner-card .bp-art { height: 56px; font-size: 32px; }
+.bp-banner-name { font-size: 17px; font-weight: 700; letter-spacing: 2px; }
+.bp-banner-in { animation: bpBannerIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+@keyframes bpBannerIn {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ============================================================================
+ * 7. ESTILOS DE MIRA
+ *
+ * Se aplican a #crosshair (en partida) y a .bp-art-xh (en las tarjetas).
+ * Las medidas van en `em` para escalarlas con el tamaño: --ch-size en el HUD y
+ * el font-size de la tarjeta en el panel.
+ *
+ * Cada regla usa `:is(#crosshair, .bp-art-xh)` porque los pseudo-elementos por
+ * defecto de style.css (#crosshair::before/::after, especificidad de ID) ganarían
+ * a un selector de clase suelto y los dibujos nuevos no se aplicarían.
+ * ==========================================================================*/
+#crosshair { font-size: var(--ch-size, 20px); }
+.bp-art-xh { position: relative; --ch-color: currentColor; }
+
+/* cross: el dibujo por defecto de style.css, sin cambios. */
+.xh-cross { background: none; }
+
+:is(#crosshair, .bp-art-xh).xh-dot::before,
+:is(#crosshair, .bp-art-xh).xh-dot::after,
+:is(#crosshair, .bp-art-xh).xh-circle::before,
+:is(#crosshair, .bp-art-xh).xh-circle::after,
+:is(#crosshair, .bp-art-xh).xh-chevron::before,
+:is(#crosshair, .bp-art-xh).xh-chevron::after,
+:is(#crosshair, .bp-art-xh).xh-triangle::before,
+:is(#crosshair, .bp-art-xh).xh-triangle::after,
+:is(#crosshair, .bp-art-xh).xh-skull::before,
+:is(#crosshair, .bp-art-xh).xh-skull::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    transform: translate(-50%, -50%);
+}
+
+/* Punto */
+:is(#crosshair, .bp-art-xh).xh-dot::before,
+:is(#crosshair, .bp-art-xh).xh-dot::after { display: none; }
+:is(#crosshair, .bp-art-xh).xh-dot {
+    background: radial-gradient(circle at 50% 50%, var(--ch-color, #fff) 0 0.11em, transparent 0.12em);
+}
+
+/* Anillo con punto central */
+:is(#crosshair, .bp-art-xh).xh-circle::before,
+:is(#crosshair, .bp-art-xh).xh-circle::after { display: none; }
+:is(#crosshair, .bp-art-xh).xh-circle {
+    background: radial-gradient(circle at 50% 50%, var(--ch-color, #fff) 0 0.09em, transparent 0.1em);
+    box-shadow: inset 0 0 0 0.075em var(--ch-color, #fff);
+    border-radius: 50%;
+}
+
+/* Chevrón (doble) */
+:is(#crosshair, .bp-art-xh).xh-chevron { background: none; }
+:is(#crosshair, .bp-art-xh).xh-chevron::before,
+:is(#crosshair, .bp-art-xh).xh-chevron::after {
+    width: 0.26em;
+    height: 0.26em;
+    border-top: 0.09em solid var(--ch-color, #fff);
+    border-right: 0.09em solid var(--ch-color, #fff);
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+:is(#crosshair, .bp-art-xh).xh-chevron::before { margin-top: 0.13em; }
+:is(#crosshair, .bp-art-xh).xh-chevron::after  { margin-top: -0.14em; opacity: 0.75; }
+
+/* Delta (triángulo) */
+:is(#crosshair, .bp-art-xh).xh-triangle { background: none; }
+:is(#crosshair, .bp-art-xh).xh-triangle::after { display: none; }
+:is(#crosshair, .bp-art-xh).xh-triangle::before {
+    width: 0;
+    height: 0;
+    background: none;
+    border-left: 0.16em solid transparent;
+    border-right: 0.16em solid transparent;
+    border-bottom: 0.28em solid var(--ch-color, #fff);
+}
+
+/* Calavera: cráneo + cuencas */
+:is(#crosshair, .bp-art-xh).xh-skull { background: none; }
+:is(#crosshair, .bp-art-xh).xh-skull::before {
+    width: 0.5em;
+    height: 0.46em;
+    background: var(--ch-color, #fff);
+    border-radius: 48% 48% 32% 32%;
+}
+:is(#crosshair, .bp-art-xh).xh-skull::after {
+    width: 0.5em;
+    height: 0.46em;
+    background:
+        radial-gradient(circle at 33% 38%, #0a0a12 0 0.07em, transparent 0.075em),
+        radial-gradient(circle at 65% 38%, #0a0a12 0 0.07em, transparent 0.075em);
+}
+
+/* Tamaño dentro de las tarjetas del panel. */
+.bp-art-xh.xh-dot,
+.bp-art-xh.xh-circle     { width: 1em;   height: 1em;   font-size: 34px; }
+.bp-art-xh.xh-chevron,
+.bp-art-xh.xh-triangle,
+.bp-art-xh.xh-skull      { width: 1.4em; height: 1.4em; font-size: 30px; }
+
+/* ============================================================================
+ * 8. RESPONSIVE
+ * ==========================================================================*/
+@media screen and (max-height: 600px), screen and (max-width: 768px) {
+    .sub-panel.bp-panel { width: min(var(--bp-panel-w), 98vw); padding: 18px 16px 14px; gap: 10px; }
+    .bp-season { font-size: 13px; letter-spacing: 3px; }
+    .bp-level  { font-size: 17px; }
+    .bp-card   { width: 132px; padding: 8px 6px 10px; }
+    .bp-card .bp-art { height: 54px; font-size: 30px; }
+    .bp-mission { padding: 8px 10px; }
+    .bp-ward-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+}
+
+/* Pantallas bajas (móvil en horizontal): todo más compacto. */
+@media screen and (max-height: 500px) {
+    .sub-panel.bp-panel { padding: 14px 14px 10px; gap: 8px; }
+    .sub-panel.bp-panel h2 { font-size: 17px; margin-bottom: 0; }
+    .bp-head { gap: 6px; }
+    .bp-season { font-size: 12px; letter-spacing: 2px; }
+    .bp-head-row { gap: 8px; }
+    .bp-level { font-size: 15px; }
+    .bp-free  { font-size: 10px; padding: 1px 8px; }
+    .bp-xp-bar { height: 6px; }
+    .bp-xp-text { font-size: 11px; }
+    .bp-tabs { padding-bottom: 6px; gap: 6px; }
+    .bp-tab { min-height: 40px; padding: 7px 4px; font-size: 11px; letter-spacing: 1px; }
+    .bp-track { padding: 2px 2px 10px; gap: 8px; }
+    .bp-card { width: 116px; gap: 4px; }
+    .bp-card .bp-art { height: 44px; font-size: 26px; }
+    .bp-card-name { font-size: 11px; }
+    .bp-section-title { font-size: 12px; letter-spacing: 2px; }
+    .bp-section-tag  { font-size: 10px; }
+    .bp-mission { padding: 6px 9px; gap: 4px; }
+    .bp-mission-text { font-size: 12px; }
+    .bp-mission-xp { font-size: 11px; }
+    .bp-ward { padding: 6px 5px 8px; }
+    .bp-ward .bp-art { height: 36px; font-size: 22px; }
+    .bp-ward-name { font-size: 11px; }
+    .bp-banner { top: 68%; gap: 8px; }
+    .bp-banner-title { font-size: 30px; letter-spacing: 5px; }
+    .bp-banner-card { padding: 8px 18px; }
+    .bp-banner-card .bp-art { height: 42px; font-size: 26px; }
+    .bp-banner-name { font-size: 14px; }
+    .bp-toasts { top: 54px; }
+    .bp-toast  { padding: 6px 14px; }
+    .bp-toast-body { font-size: 13px; }
+    #bp-title-tag { margin: -26px 0 34px; font-size: 12px; }
+}
+
+@media screen and (max-width: 520px) {
+    .bp-ward-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+    .bp-xp-feed  { right: 10px; }
+    .bp-xp-popup { font-size: 12px; padding: 4px 9px; }
+}

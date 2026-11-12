@@ -8,14 +8,41 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a1e">
     <title>Neon Siege</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/menu-fx.css">
+    <link rel="stylesheet" href="css/bp.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
+<!-- ═══════════════════════ ICON SPRITE (HUD + menú) ═══════════════════════ -->
+<svg id="icon-sprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></symbol>
+    <symbol id="i-resume" viewBox="0 0 24 24"><path d="M5 4h3v16H5zM11 4l11 8-11 8z" fill="currentColor"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z" fill="currentColor"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 16.5a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6zm2-6.3c-.9.6-1.1.9-1.1 1.6v.4h-1.9v-.6c0-1.3.5-2 1.6-2.7.9-.6 1.2-.9 1.2-1.5s-.5-1.1-1.3-1.1c-.9 0-1.4.5-1.5 1.4H9.1c.1-1.9 1.4-3.1 3.4-3.1 2 0 3.3 1.1 3.3 2.8 0 1.1-.5 1.8-1.8 2.8z" fill="currentColor"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16v2H2V2h2zM7 17V9h3v8zm5 0V4h3v13zm5 0v-6h3v6z" fill="currentColor"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm0 6.2a2.2 2.2 0 110-4.4 2.2 2.2 0 010 4.4zM21 13.2v-2.4l-2.4-.5a6.9 6.9 0 00-.7-1.7l1.3-2-1.7-1.7-2 1.3a6.9 6.9 0 00-1.7-.7L13.2 3h-2.4l-.5 2.4a6.9 6.9 0 00-1.7.7l-2-1.3-1.7 1.7 1.3 2a6.9 6.9 0 00-.7 1.7L3 10.8v2.4l2.4.5c.2.6.4 1.2.7 1.7l-1.3 2 1.7 1.7 2-1.3c.5.3 1.1.6 1.7.7l.5 2.4h2.4l.5-2.4c.6-.2 1.2-.4 1.7-.7l2 1.3 1.7-1.7-1.3-2c.3-.5.6-1.1.7-1.7z" fill="currentColor"/></symbol>
+    <symbol id="i-hp" viewBox="0 0 24 24"><path d="M12 21S3 14.5 3 8.8A5 5 0 0112 6a5 5 0 019 2.8C21 14.5 12 21 12 21z" fill="currentColor"/></symbol>
+    <symbol id="i-ammo" viewBox="0 0 24 24"><path d="M9 2h6l1.5 4.5V13H7.5V6.5zM7.5 15h9v6h-9z" fill="currentColor"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm.9 15.4v1.3h-1.6v-1.3c-1.7-.2-2.8-1.2-2.9-2.8h1.9c.1.8.7 1.3 1.8 1.3s1.7-.4 1.7-1.1c0-.6-.4-1-1.7-1.3l-1-.2c-1.8-.4-2.6-1.3-2.6-2.7 0-1.5 1.1-2.5 2.8-2.7V6.3h1.6v1.6c1.6.2 2.7 1.2 2.8 2.7h-1.9c-.1-.7-.7-1.2-1.6-1.2-.9 0-1.6.4-1.6 1.1 0 .6.4.9 1.6 1.2l1 .2c1.9.4 2.7 1.2 2.7 2.7 0 1.6-1.1 2.6-3 2.8z" fill="currentColor"/></symbol>
+    <symbol id="i-skull" viewBox="0 0 24 24"><path d="M12 2C7 2 4 5.4 4 10c0 2.6 1.2 4.5 3 5.6V19a1 1 0 001 1h2v-2h2v2h2a1 1 0 001-1v-3.4c1.8-1.1 3-3 3-5.6 0-4.6-3-8-8-8zM9 12a1.8 1.8 0 110-3.6A1.8 1.8 0 019 12zm6 0a1.8 1.8 0 110-3.6A1.8 1.8 0 0115 12z" fill="currentColor"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12c2.5 0 2.5-4 5-4s2.5 4 5 4 2.5-4 5-4 2.5 4 5 4v2c-2.5 0-2.5-4-5-4s-2.5 4-5 4-2.5-4-5-4-2.5 4-5 4z" fill="currentColor"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="currentColor"/></symbol>
+    <symbol id="i-medkit" viewBox="0 0 24 24"><path d="M4 7h16a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1zm6.5 3v2.5H8v3h2.5V18h3v-2.5H16v-3h-2.5V10zM9 3h6a1 1 0 011 1v1H8V4a1 1 0 011-1z" fill="currentColor"/></symbol>
+    <symbol id="i-weapon" viewBox="0 0 24 24"><path d="M2 8h13l2 3h5v3h-3l-2 4h-4l1-4H9l-2 4H3l2-4H2z" fill="currentColor"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zm0 3v13h8V5zm4 14.2a.9.9 0 100 1.8.9.9 0 000-1.8z" fill="currentColor"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><path d="M11 2h2v3.1A7 7 0 0118.9 11H22v2h-3.1A7 7 0 0113 18.9V22h-2v-3.1A7 7 0 015.1 13H2v-2h3.1A7 7 0 0111 5.1zm1 5a5 5 0 100 10 5 5 0 000-10zm0 3.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="currentColor"/></symbol>
+    <symbol id="i-dash" viewBox="0 0 24 24"><path d="M3 5l7 7-7 7V5zm8 0l7 7-7 7V5zm8 0h2v14h-2z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z" fill="currentColor"/></symbol>
+</svg>
+
 <!-- ═══════════════════ ROTATE PROMPT (portrait only) ═══════════════════════ -->
 <div id="rotate-prompt">
-    <div id="rotate-phone">📱</div>
+    <div id="rotate-phone"><svg class="ico"><use href="#i-phone"/></svg></div>
     <div id="rotate-title">ROTA EL DISPOSITIVO</div>
     <div id="rotate-sub">El juego requiere modo horizontal</div>
 </div>
@@ -25,17 +52,17 @@
     <div id="menu-overlay"></div>
     <div id="menu-content">
         <div id="game-title">
-            <span class="title-3d">3D</span>SHOOTER
+            <span class="title-neon">NEON</span><span class="title-siege">SIEGE</span>
         </div>
-        <div id="menu-subtitle">Wave Survival · Three.js</div>
+        <div id="menu-subtitle">Wave Survival · Gun Game</div>
 
         <nav id="menu-buttons">
-            <button id="btn-play"     class="menu-btn primary">▶ &nbsp;JUGAR</button>
-            <button id="btn-continue" class="menu-btn primary hidden">⏵ &nbsp;CONTINUAR</button>
-            <button id="btn-newgame"  class="menu-btn hidden">↺ &nbsp;NUEVA PARTIDA</button>
-            <button id="btn-tutorial" class="menu-btn">? &nbsp;&nbsp;TUTORIAL</button>
-            <button id="btn-stats"    class="menu-btn">📊 ESTADÍSTICAS</button>
-            <button id="btn-options"  class="menu-btn">⚙ &nbsp;OPCIONES</button>
+            <button id="btn-play"     class="menu-btn primary"><svg class="ico"><use href="#i-play"/></svg>JUGAR</button>
+            <button id="btn-continue" class="menu-btn primary hidden"><svg class="ico"><use href="#i-resume"/></svg>CONTINUAR</button>
+            <button id="btn-newgame"  class="menu-btn hidden"><svg class="ico"><use href="#i-restart"/></svg>NUEVA PARTIDA</button>
+            <button id="btn-tutorial" class="menu-btn"><svg class="ico"><use href="#i-help"/></svg>TUTORIAL</button>
+            <button id="btn-stats"    class="menu-btn"><svg class="ico"><use href="#i-chart"/></svg>ESTADÍSTICAS</button>
+            <button id="btn-options"  class="menu-btn"><svg class="ico"><use href="#i-gear"/></svg>OPCIONES</button>
         </nav>
 
         <div id="menu-footer">v1.0 · Abre en Chrome/Edge · Clic para capturar ratón</div>
@@ -45,30 +72,30 @@
 <!-- ════════════════════════ MODE SELECT ════════════════════════════════════ -->
 <div id="mode-screen" class="sub-screen hidden">
     <div class="sub-panel mode-panel">
-        <h2>🎮 Modo de Juego</h2>
+        <h2>Modo de Juego</h2>
         <div class="mode-grid">
 
             <div class="mode-card" onclick="showDifficultyScreen()">
-                <div class="mode-emoji">🌊</div>
+                <div class="mode-emoji"><svg class="ico"><use href="#i-wave"/></svg></div>
                 <div class="mode-name">OLEADAS</div>
                 <div class="mode-desc">Sobrevive oleadas infinitas de enemigos. Compra armas, acumula bajas.</div>
                 <ul class="mode-features">
-                    <li>🏪 Tienda entre oleadas</li>
-                    <li>📈 Dificultad escalable</li>
-                    <li>🩺 Botiquines</li>
-                    <li>⭐ Power-ups</li>
+                    <li>Tienda entre oleadas</li>
+                    <li>Dificultad escalable</li>
+                    <li>Botiquines</li>
+                    <li>Power-ups</li>
                 </ul>
             </div>
 
             <div class="mode-card gg-mode-card" onclick="startGunGameMode()">
-                <div class="mode-emoji">🔫</div>
+                <div class="mode-emoji"><svg class="ico"><use href="#i-weapon"/></svg></div>
                 <div class="mode-name" style="color:#FFD700">GUN GAME</div>
                 <div class="mode-desc">10 armas. Cada kill cambia a la siguiente. ¿Puedes ganar con la Pistola Dorada?</div>
                 <ul class="mode-features">
-                    <li>🪃 Bate → ⭐ Pistola Dorada</li>
-                    <li>🔄 10 armas en progresión</li>
-                    <li>🚀 Sin tienda — pura habilidad</li>
-                    <li>⭐ Power-ups de estrella</li>
+                    <li>Del bate a la Pistola Dorada</li>
+                    <li>10 armas en progresión</li>
+                    <li>Sin tienda — pura habilidad</li>
+                    <li>Power-ups de estrella</li>
                 </ul>
             </div>
 
@@ -80,58 +107,58 @@
 <!-- ════════════════════════ DIFFICULTY SELECT ══════════════════════════════ -->
 <div id="difficulty-screen" class="sub-screen hidden">
     <div class="sub-panel diff-panel">
-        <h2>⚔ Elige tu destino</h2>
+        <h2>Elige tu destino</h2>
         <div class="diff-grid">
 
             <div class="diff-card" data-diff="facil" style="--dcolor:#00ff88">
-                <div class="diff-emoji">😊</div>
+                <div class="diff-emoji">▰▱▱▱</div>
                 <div class="diff-name" style="color:#00ff88">Fácil</div>
                 <div class="diff-desc">Para relajarse y explorar</div>
                 <ul class="diff-stats">
-                    <li>❤ Vida enemigos ×0.65</li>
-                    <li>💨 Velocidad ×0.70</li>
-                    <li>🩹 Drop salud 45%</li>
-                    <li>💰 $1500 iniciales</li>
-                    <li>⚔ Daño 8 / golpe</li>
+                    <li>Vida enemigos ×0.65</li>
+                    <li>Velocidad ×0.70</li>
+                    <li>Drop salud 45%</li>
+                    <li>$1500 iniciales</li>
+                    <li>Daño 8 / golpe</li>
                 </ul>
             </div>
 
             <div class="diff-card active" data-diff="medioTonto" style="--dcolor:#ffcc00">
-                <div class="diff-emoji">🤔</div>
+                <div class="diff-emoji">▰▰▱▱</div>
                 <div class="diff-name" style="color:#ffcc00">Medio Tonto</div>
                 <div class="diff-desc">Experiencia estándar</div>
                 <ul class="diff-stats">
-                    <li>❤ Vida enemigos ×1.00</li>
-                    <li>💨 Velocidad ×1.00</li>
-                    <li>🩹 Drop salud 28%</li>
-                    <li>💰 $800 iniciales</li>
-                    <li>⚔ Daño 15 / golpe</li>
+                    <li>Vida enemigos ×1.00</li>
+                    <li>Velocidad ×1.00</li>
+                    <li>Drop salud 28%</li>
+                    <li>$800 iniciales</li>
+                    <li>Daño 15 / golpe</li>
                 </ul>
             </div>
 
             <div class="diff-card" data-diff="medioLoco" style="--dcolor:#ff6600">
-                <div class="diff-emoji">😤</div>
+                <div class="diff-emoji">▰▰▰▱</div>
                 <div class="diff-name" style="color:#ff6600">Medio Loco</div>
                 <div class="diff-desc">Empieza el sudor frío</div>
                 <ul class="diff-stats">
-                    <li>❤ Vida enemigos ×1.40</li>
-                    <li>💨 Velocidad ×1.30</li>
-                    <li>🩹 Drop salud 12%</li>
-                    <li>💰 $600 iniciales</li>
-                    <li>⚔ Daño 22 / golpe</li>
+                    <li>Vida enemigos ×1.40</li>
+                    <li>Velocidad ×1.30</li>
+                    <li>Drop salud 12%</li>
+                    <li>$600 iniciales</li>
+                    <li>Daño 22 / golpe</li>
                 </ul>
             </div>
 
             <div class="diff-card" data-diff="muyLoco" style="--dcolor:#ff2222">
-                <div class="diff-emoji">💀</div>
+                <div class="diff-emoji">▰▰▰▰</div>
                 <div class="diff-name" style="color:#ff2222">Muy Loco</div>
                 <div class="diff-desc">¿Por qué haces esto?</div>
                 <ul class="diff-stats">
-                    <li>❤ Vida enemigos ×2.00</li>
-                    <li>💨 Velocidad ×1.70</li>
-                    <li>🩹 Drop salud 5%</li>
-                    <li>💰 $400 iniciales</li>
-                    <li>⚔ Daño 35 / golpe</li>
+                    <li>Vida enemigos ×2.00</li>
+                    <li>Velocidad ×1.70</li>
+                    <li>Drop salud 5%</li>
+                    <li>$400 iniciales</li>
+                    <li>Daño 35 / golpe</li>
                 </ul>
             </div>
 
@@ -143,12 +170,12 @@
 <!-- ═══════════════════════════════ TUTORIAL ════════════════════════════════ -->
 <div id="tutorial-screen" class="sub-screen hidden">
     <div class="sub-panel wide-panel">
-        <h2>📖 Tutorial</h2>
+        <h2>Tutorial</h2>
 
         <div class="controls-grid">
             <div class="ctrl-item"><div class="key-box">W A S D</div><div class="ctrl-label">Moverse</div></div>
-            <div class="ctrl-item"><div class="key-box">🖱 MOVER</div><div class="ctrl-label">Apuntar</div></div>
-            <div class="ctrl-item"><div class="key-box">🖱 CLIC</div><div class="ctrl-label">Disparar</div></div>
+            <div class="ctrl-item"><div class="key-box">RATÓN</div><div class="ctrl-label">Apuntar</div></div>
+            <div class="ctrl-item"><div class="key-box">CLIC</div><div class="ctrl-label">Disparar</div></div>
             <div class="ctrl-item"><div class="key-box">SPACE</div><div class="ctrl-label">Saltar</div></div>
             <div class="ctrl-item"><div class="key-box">E</div><div class="ctrl-label">Dash <small>(5 s CD)</small></div></div>
             <div class="ctrl-item"><div class="key-box">R</div><div class="ctrl-label">Recargar</div></div>
@@ -158,15 +185,15 @@
         </div>
 
         <div class="tips-box">
-            <h3>💡 Consejos</h3>
+            <h3>Consejos</h3>
             <ul>
-                <li>🎯 Los <b>headshots</b> hacen 2.5× más daño — apunta a la cabeza</li>
-                <li>💰 Cada baja da <b>$200</b> — acumula para comprar armas</li>
-                <li>🧱 Usa las <b>coberturas</b> (cajas marrones) para esquivar</li>
-                <li>💨 El <b>Dash</b> rompe el cerco de enemigos en apuros</li>
-                <li>🔫 La <b>escopeta</b> es letal a corta distancia</li>
-                <li>📡 El <b>minimapa</b> muestra puntos rojos = enemigos</li>
-                <li>⭐ Recoge la <b>estrella dorada</b> para invulnerabilidad + velocidad</li>
+                <li>Los <b>headshots</b> hacen 2.5× más daño — apunta a la cabeza</li>
+                <li>Cada baja da <b>$200</b> — acumula para comprar armas</li>
+                <li>Usa las <b>coberturas</b> (cajas marrones) para esquivar</li>
+                <li>El <b>Dash</b> rompe el cerco de enemigos en apuros</li>
+                <li>La <b>escopeta</b> es letal a corta distancia</li>
+                <li>El <b>minimapa</b> muestra puntos rojos = enemigos</li>
+                <li>Recoge la <b>estrella dorada</b> para invulnerabilidad + velocidad</li>
             </ul>
         </div>
 
@@ -177,28 +204,36 @@
 <!-- ═══════════════════════════════ STATS ═══════════════════════════════════ -->
 <div id="stats-screen" class="sub-screen hidden">
     <div class="sub-panel">
-        <h2>📊 Estadísticas</h2>
+        <h2>Estadísticas</h2>
 
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-val" id="st-best-wave">0</div>
-                <div class="stat-lbl">🏆 Mejor oleada</div>
+                <div class="stat-lbl">Mejor oleada</div>
             </div>
             <div class="stat-card">
                 <div class="stat-val" id="st-total-kills">0</div>
-                <div class="stat-lbl">💀 Bajas totales</div>
+                <div class="stat-lbl">Bajas totales</div>
             </div>
             <div class="stat-card">
                 <div class="stat-val" id="st-games">0</div>
-                <div class="stat-lbl">🎮 Partidas jugadas</div>
+                <div class="stat-lbl">Partidas jugadas</div>
             </div>
             <div class="stat-card">
                 <div class="stat-val" id="st-time">0:00</div>
-                <div class="stat-lbl">⏱ Tiempo jugado</div>
+                <div class="stat-lbl">Tiempo jugado</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="st-streak">0</div>
+                <div class="stat-lbl">Mejor racha</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="st-accuracy">0%</div>
+                <div class="stat-lbl">Mejor puntería</div>
             </div>
         </div>
 
-        <button id="btn-reset-stats" class="btn-danger">🗑 Resetear estadísticas</button>
+        <button id="btn-reset-stats" class="btn-danger">Resetear estadísticas</button>
         <button class="btn-back" onclick="showMainMenu()">◀ Volver</button>
     </div>
 </div>
@@ -206,10 +241,10 @@
 <!-- ═══════════════════════════════ OPTIONS ═════════════════════════════════ -->
 <div id="options-screen" class="sub-screen hidden">
     <div class="sub-panel">
-        <h2>⚙ Opciones</h2>
+        <h2>Opciones</h2>
 
         <div class="opt-group">
-            <div class="opt-label">🖱 Sensibilidad del ratón</div>
+            <div class="opt-label">Sensibilidad del ratón</div>
             <div class="opt-row">
                 <span class="range-min">Lento</span>
                 <input type="range" id="opt-sens" min="0.3" max="3" step="0.1" value="1">
@@ -219,7 +254,7 @@
         </div>
 
         <div class="opt-group">
-            <div class="opt-label">👆 Sensibilidad táctil</div>
+            <div class="opt-label">Sensibilidad táctil</div>
             <div class="opt-row">
                 <span class="range-min">Lento</span>
                 <input type="range" id="opt-touch-sens" min="0.3" max="3" step="0.1" value="1">
@@ -229,7 +264,7 @@
         </div>
 
         <div class="opt-group">
-            <div class="opt-label">🎯 Color de mira</div>
+            <div class="opt-label">Color de mira</div>
             <div class="color-swatches" id="color-swatches">
                 <button class="swatch active" data-color="#00ff00" style="background:#00ff00" title="Verde"></button>
                 <button class="swatch" data-color="#00ffff" style="background:#00ffff" title="Cian"></button>
@@ -247,7 +282,7 @@
         </div>
 
         <div class="opt-group">
-            <div class="opt-label">📏 Tamaño de mira</div>
+            <div class="opt-label">Tamaño de mira</div>
             <div class="size-btns" id="size-btns">
                 <button class="size-btn" data-size="14">S</button>
                 <button class="size-btn active" data-size="20">M</button>
@@ -257,14 +292,29 @@
         </div>
 
         <div class="opt-group">
-            <div class="opt-label">🗺 Minimapa</div>
+            <div class="opt-label">Calidad gráfica</div>
+            <div class="opt-row">
+                <button id="opt-quality" class="toggle-btn on">MEDIO</button>
+            </div>
+            <div class="opt-hint">Rendimiento = más FPS · Alto = antialiasing (requiere recargar)</div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">Contador de FPS</div>
+            <div class="opt-row">
+                <button id="opt-fps" class="toggle-btn off">OFF</button>
+            </div>
+        </div>
+
+        <div class="opt-group">
+            <div class="opt-label">Minimapa</div>
             <div class="opt-row">
                 <button id="opt-minimap" class="toggle-btn on">ON</button>
             </div>
         </div>
 
         <div class="opt-group">
-            <div class="opt-label">🔊 Volumen</div>
+            <div class="opt-label">Volumen</div>
             <div class="opt-row">
                 <span class="range-min">0%</span>
                 <input type="range" id="opt-vol" min="0" max="100" step="5" value="80">
@@ -280,7 +330,7 @@
 <!-- ═══════════════════════════════ WIN SCREEN ═══════════════════════════════ -->
 <div id="win-screen" class="sub-screen hidden">
     <div class="win-panel">
-        <div class="win-title">🏆 ¡GANASTE!</div>
+        <div class="win-title"><svg class="ico"><use href="#i-star"/></svg>¡GANASTE!</div>
         <div class="win-subtitle">Completaste el Gun Game</div>
         <div class="win-stat">Bajas totales: <span id="win-kills">10</span></div>
         <button class="menu-btn primary" onclick="startGunGameMode()">↺ &nbsp;JUGAR DE NUEVO</button>
@@ -290,6 +340,7 @@
 
 <!-- ═══════════════════════════════ GAME UI ══════════════════════════════════ -->
 <div id="ui-container">
+    <div id="fps-display">0 FPS</div>
     <div id="crosshair" class="hidden"></div>
     <div id="damage-overlay" class="hidden"></div>
     <div id="hit-marker"     class="hidden"></div>
@@ -302,12 +353,12 @@
         <div id="star-bar-bg">
             <div id="star-bar-fill"></div>
         </div>
-        <div id="star-bar-label">⭐ ESTRELLA 8s</div>
+        <div id="star-bar-label">ESTRELLA 8s</div>
     </div>
 
     <!-- Gun Game progress bar -->
     <div id="gg-hud" class="hidden">
-        <div id="gg-weapon-name">🪃 Bate</div>
+        <div id="gg-weapon-name">Bate</div>
         <div id="gg-steps">
             <div class="gg-step current" title="Bate"></div>
             <div class="gg-step pending" title="Pistola"></div>
@@ -322,41 +373,74 @@
         </div>
     </div>
 
+    <div id="buff-row" class="hidden"></div>
+
+    <div id="mod-display" class="hidden"><span id="mod-value"></span></div>
+
+    <div id="boss-bar" class="hidden">
+        <div id="boss-name">COLOSO</div>
+        <div id="boss-track"><div id="boss-fill"></div></div>
+    </div>
+
+    <div id="enemy-card" class="hidden">
+        <div id="card-chip"></div>
+        <div>
+            <div id="card-label">NUEVO ENEMIGO</div>
+            <div id="card-name">RECLUTA</div>
+            <div id="card-desc"></div>
+        </div>
+    </div>
+
     <div id="top-hud">
-        <div id="wave-display">OLEADA 1</div>
+        <div id="wave-display"><svg class="ico"><use href="#i-wave"/></svg><span id="wave-value">OLEADA 1</span></div>
         <div id="diff-display" class="hidden">FÁCIL</div>
-        <div id="kill-display">Bajas: 0</div>
+        <div id="kill-display"><svg class="ico"><use href="#i-skull"/></svg><span id="kill-value">0</span></div>
     </div>
 
     <div id="stats">
-        <div id="health-bar-container">
-            <div id="health-label">HP</div>
-            <div id="health-bar"></div>
+        <div id="hud-panel">
+            <div class="hud-row">
+                <svg class="ico hud-ico ico-hp"><use href="#i-hp"/></svg>
+                <div id="health-bar-container">
+                    <div id="health-bar"></div>
+                    <div id="health-label">100</div>
+                </div>
+            </div>
+            <div class="hud-row">
+                <svg class="ico hud-ico ico-ammo"><use href="#i-ammo"/></svg>
+                <div id="ammo-display">12 / 12</div>
+                <div id="ammo-reserve">78</div>
+            </div>
+            <div class="hud-row" id="money-row">
+                <svg class="ico hud-ico ico-coin"><use href="#i-coin"/></svg>
+                <div id="money-display">800</div>
+            </div>
         </div>
-        <div id="ammo-display">Ammo: 12 / 12</div>
-        <div id="money-display">Cash: $800</div>
     </div>
 
-    <div id="weapon-display">PISTOL [1··]</div>
-    <div id="reload-indicator" class="hidden">⟳ RECARGANDO...</div>
+    <div id="weapon-display"><svg class="ico"><use href="#i-weapon"/></svg><span id="weapon-value">PISTOL [1··]</span></div>
+    <div id="reload-indicator" class="hidden">RECARGANDO</div>
     <canvas id="minimap"></canvas>
 
     <div id="buy-menu" class="hidden">
-        <h2>⚔ Armería</h2>
-        <div id="weapon-list"></div>
+        <h2>ARMERÍA</h2>
         <p id="shop-money">Cash: $800</p>
+        <div class="shop-section-label">ARMAS</div>
+        <div id="weapon-list"></div>
+        <div class="shop-section-label">MEJORAS</div>
+        <div id="upgrade-list"></div>
         <button id="close-shop">Cerrar (ESC)</button>
     </div>
 
     <div id="pause-menu" class="hidden">
         <h1>PAUSADO</h1>
         <button id="resume-game">▶ Continuar</button>
-        <button id="btn-opts-pause">⚙ Opciones</button>
+        <button id="btn-opts-pause"><svg class="ico"><use href="#i-gear"/></svg> Opciones</button>
         <button id="btn-menu-from-pause">⌂ Menú Principal</button>
     </div>
 
     <div id="game-over" class="hidden">
-        <h1>💀 GAME OVER</h1>
+        <h1><svg class="ico"><use href="#i-skull"/></svg>GAME OVER</h1>
         <div id="game-over-stats"></div>
         <button id="restart-game">↺ Nueva Partida</button>
         <button id="btn-menu-from-over">⌂ Menú Principal</button>
@@ -364,12 +448,20 @@
 
     <div id="wave-announce" class="hidden"></div>
 
+    <div id="tutorial-hint" class="hidden"></div>
+
     <div id="controls-hint">
-        WASD Mover · Ratón Apuntar · Clic Disparar · R Recargar · E Dash · 1/2/3 Armas · B Tienda · ESC Pausa
+        WASD Mover · Ratón Apuntar · Clic Disparar · R Recargar · Espacio Saltar · E Dash · 1-5 Armas · B Armería · ESC Pausa
     </div>
 </div>
 
 <script src="mobile/touch-controls.js"></script>
+<script src="js/weapon-fx.js"></script>
+<script src="js/gun-audio.js"></script>
+<script src="js/battlepass.js"></script>
 <script src="js/game.js"></script>
+<script src="js/bp-ui.js"></script>
+<script src="js/menu-fx.js"></script>
+<script src="js/menu-tutorial.js"></script>
 </body>
 </html>

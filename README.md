@@ -56,6 +56,39 @@ A pure skill test. Start with a baseball bat. Every kill gives you the next weap
 
 ---
 
+## 👾 Roster de enemigos
+
+Cinco arquetipos que se leen por silueta y color antes de entrar en rango. Los multiplicadores se aplican sobre la curva de oleada y la dificultad, así que el balance global sigue viviendo en un solo sitio.
+
+| Arquetipo | Vida | Vel | Daño | $ | Qué te obliga a hacer |
+|-----------|------|-----|------|---|------------------------|
+| **Recluta** | ×1.0 | ×1.0 | ×1.0 | 200 | Nada: es la vara de medir |
+| **Chacal** | ×0.45 | ×1.95 | ×0.6 | 260 | Orbita mientras cierra: seguirlo con la mira |
+| **Mastodonte** | ×3.2 | ×0.55 | ×1.9 | 420 | Gastar cargador o esquivar con dash |
+| **Zumbador** | ×0.8 | ×1.3 | ×1.0 | 300 | Matarlo lejos: explota (radio 7, 18 de daño) |
+| **Coloso** (jefe) | ×14 | ×0.85 | ×2.4 | 1500 | Aparece cada 5 oleadas, con barra de vida propia |
+
+**Composición:** oleadas 1-2 solo Recluta · Chacal desde la 3 · Mastodonte desde la 4 · Zumbador desde la 5 · desde la 8 el Chacal domina · jefe en cada múltiplo de 5.
+
+**Reglas de oleada:** cada tres oleadas (nunca en la de jefe) entra un modificador — `JAURÍA` (solo Chacales), `NIEBLA DENSA` (visibilidad reducida) o `SIN SUMINISTROS` (no caen botiquines).
+
+---
+
+## 🔧 Armería y power-ups
+
+Cinco armas en Oleadas (Pistol, Rifle, Shotgun, SMG, Sniper) más cuatro líneas de mejora permanentes que valen para todas:
+
+| Mejora | Efecto por nivel | Niveles |
+|--------|------------------|---------|
+| Cargador | +30% balas por cargador | 4 |
+| Recarga | −15% tiempo de recarga | 4 |
+| Daño | +15% daño de arma | 4 |
+| Velocidad | +8% velocidad al correr | 3 |
+
+Además de la estrella hay dos power-ups que caen de las bajas: **munición infinita** (9s, sin recargas) y **cámara lenta** (7s, los enemigos van al 40% — el jugador no).
+
+---
+
 ## ⚡ Core Features
 
 | Feature | Description |
@@ -82,7 +115,7 @@ A pure skill test. Start with a baseball bat. Every kill gives you the next weap
 | `R` | Reload |
 | `Space` | Jump |
 | `E` | Dash |
-| `1 / 2 / 3` | Switch weapon |
+| `1` … `5` | Cambiar arma |
 | `B` | Open armory (Wave mode) |
 | `ESC` | Pause |
 
@@ -185,6 +218,22 @@ A dedicated branch `mobile/android` contains the mobile adaptation of Neon Siege
 
 ---
 
+## 🎚 Rendimiento
+
+El juego trae tres presets de calidad (Ajustes → Calidad gráfica), aplicables en caliente salvo el antialiasing:
+
+| Preset | Escala de render | AA | Sombras | Luces de arena |
+|--------|------------------|----|---------|----------------|
+| Rendimiento | 0.75× | no | no | no |
+| Medio (por defecto) | 1.0× | no | sí (1024) | sí |
+| Alto | 1.0× (hasta 2× DPR) | sí | sí (2048) | sí |
+
+Decisiones que sostienen el framerate: renderer con `powerPreference: 'high-performance'`, materiales Lambert en vez de PBR, geometrías y materiales compartidos por arquetipo, el horizonte entero en un `InstancedMesh` (1 draw call para 150 edificios), HUD con caché de nodos y escritura solo cuando el valor cambia, minimapa a 30 Hz y screen shake con decaimiento por segundo (no por frame). Escena completa ≈ 47 draw calls.
+
+Hay un contador de FPS activable en Ajustes.
+
+---
+
 ## 🧱 Tech Stack
 
 | Layer | Technology |
@@ -201,6 +250,11 @@ A dedicated branch `mobile/android` contains the mobile adaptation of Neon Siege
 
 ## 🗺️ Roadmap
 
+- [x] Roster de enemigos con arquetipos y jefe
+- [x] Identidad visual (logotipo, tipografía de display, iconografía del HUD)
+- [x] Mundo con cielo, horizonte y trazado de arena
+- [x] Mejoras de armería, dos armas más, power-ups y reglas de oleada
+- [x] Tutorial dentro del juego, pantalla de muerte con récord, puntería y racha
 - [ ] Mobile APK (in progress — `mobile/android` branch)
 - [ ] Character models via Blender + Mixamo pipeline
 - [ ] Multiplayer (WebSocket / WebRTC)
