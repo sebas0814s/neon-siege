@@ -66,6 +66,18 @@
     var sprintRotY  = 0.0;
     var sprintRotZ  = 0.0;
 
+    // Reload animation state (weapon dips, rolls and comes back)
+    var reloadTimer    = 0.0;
+    var reloadDuration = 0.0;   // 0 = not reloading
+
+    // Look sway & vertical inertia, derived from camera motion between frames
+    var lastYaw     = null;
+    var lastPitch   = 0.0;
+    var lastCamY    = 0.0;
+    var lookSwayX   = 0.0;
+    var lookSwayY   = 0.0;
+    var inertiaY    = 0.0;
+
     // Muzzle flash & light
     var flashSprite   = null;
     var flashLight    = null;
@@ -737,7 +749,73 @@
             group.add(marker);
         }
 
+        addHands(T, norm, group);
+
         return marker;
+    }
+
+    // ── Hands ──────────────────────────────────────────────────────────────────
+    // Anchors in weapon space. `grip` is the trigger hand, `support` the off
+    // hand under the forend (two-handed weapons only). The viewmodel renders
+    // without depth test, so only parts visible from behind-left are modelled
+    // and renderOrder does the layering: sleeves behind the gun, gloves over it.
+    var HAND_ANCHORS = {
+        pistol:      { grip: [0, -0.066, 0.020], tilt: 0.24 },
+        gg_revolver: { grip: [0, -0.075, 0.032], tilt: 0.32 },
+        gg_golden:   { grip: [0, -0.066, 0.020], tilt: 0.24 },
+        smg:         { grip: [0, -0.072, 0.014], tilt: 0.26, support: [0, -0.045, -0.20] },
+        rifle:       { grip: [0, -0.076, 0.034], tilt: 0.28, support: [0, -0.040, -0.29] },
+        shotgun:     { grip: [0, -0.040, 0.080], tilt: 0.55, support: [0, -0.052, -0.26] },
+        sniper:      { grip: [0, -0.045, 0.100], tilt: 0.55, support: [0, -0.050, -0.22] },
+        gg_minigun:  { grip: [0,  0.100, 0.020], tilt: 0.00, support: [0, -0.075, -0.05] },
+        gg_rpg:      { grip: [0, -0.075, -0.02], tilt: 0.00, support: [0, -0.065, -0.22] },
+        gg_bat:      { grip: [0, -0.020, 0.090], tilt: 1.35, support: [0, -0.020, 0.025] }
+    };
+
+    var ORDER_SLEEVE = 990;
+    var ORDER_GLOVE  = 999.4;
+    var ORDER_THUMB  = 999.6;
+
+    function addHandPart(T, parent, size, at, material, order) {
+        var mesh = applyViewmodelStyle(
+            new T.Mesh(new T.BoxGeometry(size[0], size[1], size[2]), material), material, order);
+        mesh.position.set(at[0], at[1], at[2]);
+        parent.add(mesh);
+        return mesh;
+    }
+
+    // Sleeve hanging from the wrist toward the bottom of the screen. No accent
+    // trim here: without depth test every face of a band would draw, and a
+    // bright block that close to the camera pulls the eye off the crosshair.
+    function addForearm(T, group, wrist, turn, materials) {
+        var forearm = new T.Group();
+        forearm.position.set(wrist[0], wrist[1], wrist[2]);
+        forearm.rotation.set(turn[0], turn[1], 0);
+        addHandPart(T, forearm, [0.056, 0.062, 0.40], [0, 0, 0.22], materials.sleeve, ORDER_SLEEVE);
+        group.add(forearm);
+    }
+
+    function addHands(T, norm, group) {
+        var anchor = HAND_ANCHORS[norm];
+        if (!anchor) return;
+        // Lighter than the gun metal and slightly self-lit so the gloves read
+        // as hands instead of merging into the weapon silhouette.
+        var materials = {
+            glove:  createMat(T, 0x4a5572, 0x0d1018),
+            sleeve: createMat(T, 0x1c2130, 0x05070b)
+        };
+
+        var g = anchor.grip;
+        var glove = addHandPart(T, group, [0.064, 0.082, 0.070], g, materials.glove, ORDER_GLOVE);
+        glove.rotation.x = anchor.tilt;
+        addHandPart(T, group, [0.020, 0.030, 0.060], [g[0] - 0.036, g[1] + 0.034, g[2] - 0.012], materials.glove, ORDER_THUMB);
+        addForearm(T, group, [g[0] + 0.004, g[1] - 0.02, g[2] + 0.03], [0.32, 0.15], materials);
+
+        var s = anchor.support;
+        if (!s) return;
+        addHandPart(T, group, [0.076, 0.046, 0.086], s, materials.glove, ORDER_GLOVE);
+        addHandPart(T, group, [0.018, 0.042, 0.060], [s[0] - 0.042, s[1] + 0.03, s[2]], materials.glove, ORDER_THUMB);
+        addForearm(T, group, [s[0] - 0.01, s[1] - 0.012, s[2] + 0.02], [0.45, -0.75], materials);
     }
 
     // ── Tracer Pool (Max 40) ───────────────────────────────────────────────────
@@ -957,6 +1035,16 @@
 
             // Trigger "equip" animation: rises smoothly from below (~180ms)
             equipProgress = 0.0;
+            reloadDuration = 0.0; // switching weapons cancels the reload pose
+        },
+
+        /**
+         * Plays the reload pose for the given duration (ms): the weapon dips,
+         * rolls toward the off hand and snaps back as the magazine seats.
+         */
+        reload: function (durationMs) {
+            reloadDuration = Math.max(0.2, (durationMs || 0) / 1000);
+            reloadTimer = 0.0;
         },
 
         /**
@@ -1363,17 +1451,54 @@
             var swayRotX = Math.sin(idlePhase * 0.8) * 0.006;
             var swayRotY = Math.cos(idlePhase * 0.8) * 0.006;
 
+            // 6b. Reload pose: ease down, hold, bump when the magazine seats, ease up
+            var reloadY = 0.0, reloadRotX = 0.0, reloadRotZ = 0.0;
+            if (reloadDuration > 0.0) {
+                reloadTimer += delta;
+                var rk = reloadTimer / reloadDuration;
+                if (rk >= 1.0) {
+                    reloadDuration = 0.0;
+                } else {
+                    var easeIn  = Math.min(1.0, rk / 0.18);
+                    var easeOut = Math.min(1.0, (1.0 - rk) / 0.20);
+                    var pose = Math.min(easeIn, easeOut);
+                    pose = pose * pose * (3.0 - 2.0 * pose);
+                    var seat = Math.exp(-Math.pow((rk - 0.62) / 0.045, 2.0));
+                    reloadY    = -0.10 * pose + 0.03 * seat;
+                    reloadRotX =  0.48 * pose - 0.10 * seat;
+                    reloadRotZ =  0.55 * pose;
+                }
+            }
+
+            // 6c. Look sway + vertical inertia: the weapon trails the camera a
+            // little when turning, jumping or landing. Derived from the camera
+            // itself so the game loop does not have to feed mouse deltas.
+            if (cameraRef && delta > 0.0) {
+                var yaw = cameraRef.rotation.y, pitch = cameraRef.rotation.x, camY = cameraRef.position.y;
+                if (lastYaw === null) { lastYaw = yaw; lastPitch = pitch; lastCamY = camY; }
+                var yawRate   = Math.atan2(Math.sin(yaw - lastYaw), Math.cos(yaw - lastYaw)) / delta;
+                var pitchRate = (pitch - lastPitch) / delta;
+                var fallRate  = (camY - lastCamY) / delta;
+                lastYaw = yaw; lastPitch = pitch; lastCamY = camY;
+
+                var follow = 1.0 - Math.exp(-10.0 * delta);
+                lookSwayX += (Math.max(-1.0, Math.min(1.0, yawRate   * 0.12)) - lookSwayX) * follow;
+                lookSwayY += (Math.max(-1.0, Math.min(1.0, pitchRate * 0.12)) - lookSwayY) * follow;
+                inertiaY  += (Math.max(-1.0, Math.min(1.0, fallRate  * 0.07)) - inertiaY)  * follow;
+            }
+
             // Apply composed offsets to animGroup (ZERO allocation)
             animGroup.position.set(
-                sprintX + bobPosX + swayX,
-                equipY + sprintY + bobPosY + swayY,
+                sprintX + bobPosX + swayX + lookSwayX * 0.028,
+                equipY + sprintY + bobPosY + swayY + reloadY - lookSwayY * 0.022 - inertiaY * 0.045,
                 recoilPos.z
             );
 
             animGroup.rotation.set(
-                equipRotX + sprintRotX + swayRotX + recoilRot.x + (isSwinging ? swingPitch : 0.0),
-                sprintRotY + swayRotY + (isSwinging ? -swingYaw : 0.0),
-                bobRotZ + sprintRotZ + (isSwinging ? swingRoll : 0.0)
+                equipRotX + sprintRotX + swayRotX + recoilRot.x + reloadRotX - lookSwayY * 0.05
+                    + (isSwinging ? swingPitch : 0.0),
+                sprintRotY + swayRotY - lookSwayX * 0.09 + (isSwinging ? -swingYaw : 0.0),
+                bobRotZ + sprintRotZ + reloadRotZ + lookSwayX * 0.05 + (isSwinging ? swingRoll : 0.0)
             );
 
             // 7. Minigun Barrel Rotation Spin & Damping

@@ -1,0 +1,66 @@
+/* ============================================================================
+   NEON SIEGE — FEEDBACK EN PARTIDA
+   css/game-fx.css
+
+   Capas que game.js enciende durante el combate: números de daño, estela del
+   dash y aviso de poca vida. Van aparte de style.css para que el HUD base no
+   dependa de ellas: si este archivo falta, el juego se ve igual que antes.
+   ========================================================================= */
+
+/* ─── NÚMEROS DE DAÑO ─────────────────────────────────────────────────────── */
+/* Nodos reutilizados: la posición la pone game.js y el movimiento una
+   animación Web Animations, así que aquí solo vive el aspecto. */
+.dmg-number {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 6px rgba(0, 255, 204, 0.85), 0 2px 4px #000;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+.dmg-number.crit {
+    font-size: 30px;
+    color: #ffd23f;
+    text-shadow: 0 0 10px rgba(255, 80, 0, 0.9), 0 2px 4px #000;
+}
+
+/* ─── ESTELA DEL DASH ─────────────────────────────────────────────────────── */
+/* Líneas radiales que solo se ven en los bordes: sensación de velocidad sin
+   tapar el centro, donde está la mira. */
+#dash-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: repeating-conic-gradient(from 0deg at 50% 50%,
+        rgba(0, 255, 204, 0) 0deg 3.2deg,
+        rgba(170, 255, 242, 0.24) 3.2deg 4deg);
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 30%, #000 80%);
+            mask-image: radial-gradient(circle at 50% 50%, transparent 30%, #000 80%);
+}
+
+/* ─── POCA VIDA ───────────────────────────────────────────────────────────── */
+/* El pulso dura lo mismo que el latido que suena (0.82 s en game-audio.js). */
+#lowhp-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(190, 0, 20, 0.5) 100%);
+    animation: lowhp-pulse 0.82s ease-in-out infinite;
+}
+@keyframes lowhp-pulse {
+    0%, 100% { opacity: 0.35; }
+    12%      { opacity: 1; }
+    30%      { opacity: 0.5; }
+    42%      { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lowhp-overlay { animation: none; opacity: 0.6; }
+    #dash-fx { display: none; }
+}

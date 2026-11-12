@@ -166,7 +166,7 @@ frame
 
 - **Renderer:** `THREE.WebGLRenderer` with hardware shadows (`PCFSoftShadowMap`)
 - **Camera:** FPS perspective camera added to `scene` so its children (arms, weapon model, muzzle flash) render correctly in view space
-- **Enemy models:** Procedural humanoid meshes (sphere head + box torso + box legs) with walking animation via sine wave on leg rotation
+- **Enemy models:** Procedural articulated androids (`js/enemy-models.js`) — hips, torso, head, shoulders, elbows and knees, one merged vertex-coloured geometry per limb, 10 meshes and a single material per enemy
 - **Hit detection:** `THREE.Raycaster` from screen center — checks against enemy geometry with per-part damage multipliers (`head: 2.5×`, `torso: 1×`, `legs: 0.7×`)
 
 ### Audio Design
@@ -218,6 +218,22 @@ A dedicated branch `mobile/android` contains the mobile adaptation of Neon Siege
 
 ---
 
+## 🎬 Personajes, escenario y sonido
+
+Tres módulos opcionales que `game.js` usa si están cargados (sin ellos el juego vuelve al muñeco, el cielo plano y los pitidos de antes):
+
+| Módulo | Qué aporta |
+|--------|------------|
+| `js/enemy-models.js` | Un modelo articulado por arquetipo (porra del Recluta, cuchillas y hocico del Chacal, puños del Mastodonte, núcleo que late del Zumbador, corona y mazo del Coloso). Animaciones de aparición, marcha, ataque, impacto y muerte: caen en la dirección del disparo y un tiro a la cabeza se la arranca. |
+| `js/world-fx.js` | Cielo con aurora, estrellas y luna; ventanas encendidas y tráfico aéreo en el horizonte; paneles en las coberturas; pulso de energía en el suelo; balizas en las torres; barrera en el borde del mapa; polvo en suspensión; chispas y ondas para muertes, explosiones y recogibles. |
+| `js/game-audio.js` | Música sintetizada que suma capas (bajo, bombo, platos, caja) según los enemigos vivos, pasos, salto, dash, voces y muertes por arquetipo con paneo estéreo, latido con poca vida. Se apaga en Ajustes → Música. |
+
+Además: manos y animación de recarga en el arma, balanceo al girar, campo de visión que se abre al correr y en el dash, inclinación al moverse de lado, cámara que cae al morir y números de daño sobre los enemigos (`css/game-fx.css`).
+
+En el preset **Rendimiento** se apagan el pulso del suelo, el polvo y los focos del cielo.
+
+---
+
 ## 🎚 Rendimiento
 
 El juego trae tres presets de calidad (Ajustes → Calidad gráfica), aplicables en caliente salvo el antialiasing:
@@ -228,7 +244,7 @@ El juego trae tres presets de calidad (Ajustes → Calidad gráfica), aplicables
 | Medio (por defecto) | 1.0× | no | sí (1024) | sí |
 | Alto | 1.0× (hasta 2× DPR) | sí | sí (2048) | sí |
 
-Decisiones que sostienen el framerate: renderer con `powerPreference: 'high-performance'`, materiales Lambert en vez de PBR, geometrías y materiales compartidos por arquetipo, el horizonte entero en un `InstancedMesh` (1 draw call para 150 edificios), HUD con caché de nodos y escritura solo cuando el valor cambia, minimapa a 30 Hz y screen shake con decaimiento por segundo (no por frame). Escena completa ≈ 47 draw calls.
+Decisiones que sostienen el framerate: renderer con `powerPreference: 'high-performance'`, materiales Lambert en vez de PBR, geometrías y materiales compartidos por arquetipo, el horizonte entero en un `InstancedMesh` (1 draw call para 150 edificios), HUD con caché de nodos y escritura solo cuando el valor cambia, minimapa a 30 Hz y screen shake con decaimiento por segundo (no por frame). Arena vacía ≈ 60 draw calls; cada enemigo suma 10 (12 con sombras).
 
 Hay un contador de FPS activable en Ajustes.
 
@@ -255,6 +271,7 @@ Hay un contador de FPS activable en Ajustes.
 - [x] Mundo con cielo, horizonte y trazado de arena
 - [x] Mejoras de armería, dos armas más, power-ups y reglas de oleada
 - [x] Tutorial dentro del juego, pantalla de muerte con récord, puntería y racha
+- [x] Personajes articulados y animados, escenario vivo y banda sonora sintetizada
 - [ ] Mobile APK (in progress — `mobile/android` branch)
 - [ ] Character models via Blender + Mixamo pipeline
 - [ ] Multiplayer (WebSocket / WebRTC)

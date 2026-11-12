@@ -33,6 +33,7 @@ GUN_GAME_WEAPONS.forEach(function(w) { WEAPONS[w.id] = w; });
 // Armas disponibles en Oleadas, en orden de ranura (teclas 1..n)
 var WAVE_SLOTS = ['pistol', 'rifle', 'shotgun', 'smg', 'sniper'];
 
+var LOW_HEALTH    = 30; // por debajo: latido, vineta roja
 var MAP_HALF      = 90;
 var PLAYER_HEIGHT = 3;
 // [x, z, ancho, alto, fondo] — el trazado define dos pasillos largos que
@@ -62,28 +63,28 @@ var ENEMY_COLORS = [0x3366cc, 0xcc3333, 0x33cc66, 0xcc6633, 0x9933cc, 0xcc3399];
 var ENEMY_TYPES = {
     recluta: {
         key:'recluta', name:'RECLUTA', color:0x3366cc, hp:1.00, speed:1.00, dmg:1.00,
-        money:200, w:1.00, h:1.00, radius:0.6, behavior:'chase',
+        money:200, w:1.00, h:1.00, radius:0.6, behavior:'chase', voice:[5, 9],
         desc:'La base. Camina recto hacia ti.'
     },
     chacal: {
         key:'chacal', name:'CHACAL', color:0xff7a18, hp:0.45, speed:1.95, dmg:0.60,
-        money:260, w:0.72, h:0.92, radius:0.45, behavior:'orbit',
+        money:260, w:0.72, h:0.92, radius:0.45, behavior:'orbit', voice:[2.5, 5],
         desc:'Flaco y rapidisimo. Orbita mientras cierra distancia.'
     },
     mastodonte: {
         key:'mastodonte', name:'MASTODONTE', color:0x8b1a1a, hp:3.20, speed:0.55, dmg:1.90,
-        money:420, w:1.45, h:1.30, radius:0.95, behavior:'chase',
+        money:420, w:1.45, h:1.30, radius:0.95, behavior:'chase', voice:[4, 7], stomp:true,
         desc:'Enorme y lento, pega durisimo. Gasta cargador o esquivalo.'
     },
     zumbador: {
         key:'zumbador', name:'ZUMBADOR', color:0x9d3cff, hp:0.80, speed:1.30, dmg:1.00,
-        money:300, w:1.00, h:0.95, radius:0.6, behavior:'chase',
+        money:300, w:1.00, h:0.95, radius:0.6, behavior:'chase', voice:[0.9, 1.6],
         explode:{ radius:7, damage:18 },
         desc:'Explota al morir. Matarlo de cerca te cuesta vida.'
     },
     coloso: {
         key:'coloso', name:'COLOSO', color:0xffcc00, hp:14.0, speed:0.85, dmg:2.40,
-        money:1500, w:2.20, h:1.90, radius:1.5, behavior:'chase', boss:true,
+        money:1500, w:2.20, h:1.90, radius:1.5, behavior:'chase', boss:true, voice:[5, 8], stomp:true,
         desc:'Jefe. Cada 5 oleadas. Emite luz propia.'
     }
 };
@@ -176,7 +177,7 @@ function buyUpgrade(key) {
     if (state.money < price) return false;
     state.money -= price;
     state.upgrades[key] = lvl + 1;
-    playHealSound();
+    playBuySound();
     // El cargador mayor se nota al instante: se rellena hasta el nuevo tope.
     if (key === 'clip') state.ammo[state.currentWeapon] = weaponClip(state.currentWeapon);
     updateUI();
@@ -270,7 +271,7 @@ var settings = (function() {
     // Sin ajustes guardados, movil arranca en 'rendimiento': es la primera
     // partida de cualquiera en Android/Capacitor y ahi es donde mas se nota.
     // Si el jugador ya guardo preferencias, mandan las suyas.
-    var def = { sensitivity: 1.0, touchSensitivity: 1.0, crosshairColor: '#00ff00', crosshairSize: 20, showMinimap: true, volume: 80, difficulty: 'medioTonto', quality: _isMobileEarly ? 'rendimiento' : 'medio', showFps: false };
+    var def = { sensitivity: 1.0, touchSensitivity: 1.0, crosshairColor: '#00ff00', crosshairSize: 20, showMinimap: true, volume: 80, difficulty: 'medioTonto', quality: _isMobileEarly ? 'rendimiento' : 'medio', showFps: false, music: true };
     try { return Object.assign({}, def, JSON.parse(localStorage.getItem('shooter_settings') || '{}')); }
     catch(e) { return def; }
 })();
@@ -304,6 +305,7 @@ function applyQuality() {
     sun.shadow.mapSize.width = sun.shadow.mapSize.height = q.shadowSize;
     sun.castShadow = q.shadows;
     for (var i = 0; i < arenaLights.length; i++) arenaLights[i].visible = (settings.quality !== 'rendimiento');
+    if (window.WorldFX) WorldFX.setQuality(settings.quality);
     scene.traverse(function(o) { if (o.material) o.material.needsUpdate = true; });
     var fps = document.getElementById('fps-display');
     if (fps) fps.style.display = settings.showFps ? 'block' : 'none';
@@ -412,8 +414,15 @@ function initAudio() {
     audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
     masterGain.gain.value = settings.volume / 100;
-    masterGain.connect(audioCtx.destination);
+    // Limitador de seguridad: musica, disparos y explosiones a la vez pueden
+    // sumar por encima de 1.0 y saturar la salida.
+    var limiter = audioCtx.createDynamicsCompressor();
+    limiter.threshold.value = -8; limiter.knee.value = 6; limiter.ratio.value = 12;
+    limiter.attack.value = 0.003; limiter.release.value = 0.15;
+    masterGain.connect(limiter);
+    limiter.connect(audioCtx.destination);
     if (window.GunAudio) GunAudio.init(audioCtx, masterGain);
+    if (window.GameAudio) { GameAudio.init(audioCtx, masterGain); GameAudio.setMusicEnabled(settings.music); }
 }
 
 function tone(type, freq, freqEnd, vol, dur) {
@@ -430,22 +439,51 @@ function tone(type, freq, freqEnd, vol, dur) {
 
 function playShootSound(id)  { if (window.GunAudio) { GunAudio.shot(id); return; } var f = ({pistol:320,rifle:500,shotgun:180,gg_bat:120,gg_pistol:320,gg_revolver:280,gg_smg:480,gg_rifle:500,gg_shotgun:180,gg_sniper:600,gg_minigun:460,gg_rpg:100,gg_golden:900})[id]||320; tone('sawtooth',f,80,0.28,0.18); }
 function playReloadSound(id) { if (window.GunAudio) { GunAudio.reload(id, weaponReload(id)); return; } tone('square',280,160,0.1,0.15); setTimeout(function(){tone('square',520,340,0.08,0.12);},200); }
-function playDamageSound()   { tone('sine',200,75,0.38,0.3); }
-function playDeathSound()    { tone('sawtooth',140,55,0.3,0.5); tone('square',75,35,0.2,0.6); }
-function playHeadshotSound() { tone('sine',820,410,0.38,0.28); tone('sine',1240,620,0.18,0.2); }
-function playWaveSound()     { tone('sine',400,820,0.28,0.38); setTimeout(function(){tone('sine',520,1040,0.22,0.38);},200); }
-function playMenuClick()     { tone('sine',600,800,0.08,0.07); }
-function playHealSound()     { tone('sine',440,660,0.25,0.15); setTimeout(function(){tone('sine',660,880,0.2,0.2);},120); setTimeout(function(){tone('sine',880,1100,0.15,0.25);},260); }
+// GameAudio (si esta cargado) sustituye estos pitidos por efectos completos;
+// las llamadas a tone() quedan como respaldo para cuando el modulo no esta.
+function playDamageSound()   { if (window.GameAudio) return GameAudio.hurt(); tone('sine',200,75,0.38,0.3); }
+function playDeathSound()    { if (window.GameAudio) return GameAudio.playerDeath(); tone('sawtooth',140,55,0.3,0.5); tone('square',75,35,0.2,0.6); }
+function playHeadshotSound() { if (window.GameAudio) return GameAudio.headshot(); tone('sine',820,410,0.38,0.28); tone('sine',1240,620,0.18,0.2); }
+function playWaveSound(isBoss) { if (window.GameAudio) return GameAudio.waveStart(isBoss); tone('sine',400,820,0.28,0.38); setTimeout(function(){tone('sine',520,1040,0.22,0.38);},200); }
+function playMenuClick()     { if (window.GameAudio) return GameAudio.ui('click'); tone('sine',600,800,0.08,0.07); }
+function playHealSound()     { if (window.GameAudio) return GameAudio.pickup('heal'); tone('sine',440,660,0.25,0.15); setTimeout(function(){tone('sine',660,880,0.2,0.2);},120); setTimeout(function(){tone('sine',880,1100,0.15,0.25);},260); }
 function playPickupNearSound() { tone('sine',300,400,0.06,0.1); }
-function playStarSound()     { tone('sine',600,1200,0.3,0.12); setTimeout(function(){tone('sine',800,1600,0.25,0.15);},100); setTimeout(function(){tone('sine',1000,2000,0.2,0.18);},220); }
-function playExplosionSound(){ tone('sawtooth',150,40,0.4,0.45); tone('square',90,30,0.3,0.35); }
-function playGGWinSound()    { [0,150,300,500].forEach(function(d,i){ setTimeout(function(){ tone('sine',[440,550,660,880][i],[660,880,1100,1320][i],0.3,0.3); },d); }); }
+function playStarSound()     { if (window.GameAudio) return GameAudio.pickup('star'); tone('sine',600,1200,0.3,0.12); setTimeout(function(){tone('sine',800,1600,0.25,0.15);},100); setTimeout(function(){tone('sine',1000,2000,0.2,0.18);},220); }
+function playPowerupSound()  { if (window.GameAudio) return GameAudio.pickup('power'); playStarSound(); }
+function playBuySound()      { if (window.GameAudio) return GameAudio.ui('buy'); playHealSound(); }
+function playExplosionSound(){ if (window.GunAudio) return GunAudio.explosion(); tone('sawtooth',150,40,0.4,0.45); tone('square',90,30,0.3,0.35); }
+function playGGWinSound()    { if (window.GameAudio) return GameAudio.victory(); [0,150,300,500].forEach(function(d,i){ setTimeout(function(){ tone('sine',[440,550,660,880][i],[660,880,1100,1320][i],0.3,0.3); },d); }); }
+
+// Paneo (-1 izquierda .. 1 derecha) y distancia de un punto del mundo respecto
+// al jugador, para que los sonidos de los enemigos se oigan en su sitio.
+var _ear = { pan: 0, dist: 0 };
+function locateSound(x, z) {
+    var dx = x - camera.position.x, dz = z - camera.position.z;
+    _ear.dist = Math.sqrt(dx * dx + dz * dz);
+    _ear.pan = _ear.dist > 0.01 ? (dx * Math.cos(input.yaw) - dz * Math.sin(input.yaw)) / _ear.dist : 0;
+    return _ear;
+}
+
+// La musica sigue al combate: cuantos mas enemigos vivos, mas capas suenan.
+var _moodAcc = 0;
+function updateAudioMood(delta) {
+    if (!window.GameAudio) return;
+    _moodAcc += delta;
+    if (_moodAcc < 0.25) return;
+    _moodAcc = 0;
+    var fighting = !inMenu && !state.isPaused;
+    GameAudio.setScene(inMenu ? 'menu' : (fighting ? 'combat' : 'paused'));
+    GameAudio.setIntensity(0.12 + enemies.length / 7, !!bossRef);
+    GameAudio.setLowHealth(fighting && state.health <= LOW_HEALTH);
+}
 
 // ──────────────────────────────────────────────────────────── SCENE ──────────
 var scene    = new THREE.Scene();
 var camera   = new THREE.PerspectiveCamera(
     _isMobileEarly ? 90 : 75,          // FOV más amplio en móvil para mejor visibilidad
-    window.innerWidth / window.innerHeight, 0.1, 200
+    // El plano lejano cubre la cupula del cielo, las estrellas y la luna;
+    // con 200 quedaban recortadas y solo se veia el color de fondo.
+    window.innerWidth / window.innerHeight, 0.1, 420
 );
 var renderer = new THREE.WebGLRenderer({
     antialias: getQuality().aa,          // MSAA cuesta mucho fill-rate: OFF salvo calidad alta
@@ -637,6 +675,15 @@ coverMeshes.forEach(function(b) {
     scene.add(trim);
 });
 
+// Ambientacion: cielo, ciudad, paneles, pulso del suelo, balizas y particulas.
+if (window.WorldFX) {
+    WorldFX.init({
+        scene: scene, camera: camera, skyDome: skyDome, skyline: skyline, ground: ground,
+        coverMaterial: COVER_MAT, coverLayout: COVER_LAYOUT, mapHalf: MAP_HALF,
+        colors: { horizon: SKY_HORIZON, zenith: SKY_ZENITH }
+    });
+}
+
 // ──────────────────────────────────────────────────────────── PLAYER ─────────
 var input = { keys: {}, pitch: 0, yaw: 0, bobPhase: 0, isLocked: false };
 
@@ -661,6 +708,7 @@ function createWeaponModel(id) {
     b.position.z = -len / 2; weaponGroup.add(b);
 }
 if (window.WeaponFX) WeaponFX.init(scene, camera);
+if (window.EnemyModels) EnemyModels.init(scene);
 createWeaponModel('pistol');
 
 var muzzleFlash = new THREE.PointLight(0xffaa33, 0, 4); muzzleFlash.position.set(0.3,-0.1,-1.2); camera.add(muzzleFlash);
@@ -668,6 +716,7 @@ var muzzleFlash = new THREE.PointLight(0xffaa33, 0, 4); muzzleFlash.position.set
 var PLAYER_RADIUS = 0.55;
 
 function applyPhysics(delta) {
+    if (state.isGameOver) return; // la camara de muerte controla la altura
     var feet  = camera.position.y - PLAYER_HEIGHT;
     var floor = groundHeightAt(camera.position.x, camera.position.z, PLAYER_RADIUS, feet);
     // Se salio del borde de una cobertura: empieza a caer
@@ -675,8 +724,26 @@ function applyPhysics(delta) {
     if (!state.isJumping) return;
     state.yVelocity += -24 * delta; camera.position.y += state.yVelocity * delta;
     if (state.yVelocity <= 0 && camera.position.y - PLAYER_HEIGHT <= floor) {
+        var impact = -state.yVelocity;
         camera.position.y = PLAYER_HEIGHT + floor; state.isJumping = false; state.yVelocity = 0;
+        onLanded(impact);
     }
+}
+
+var HARD_LANDING = 11; // velocidad de caida a partir de la cual el golpe se nota
+
+function onLanded(impact) {
+    if (impact < 2) return;
+    var strength = Math.min(1, impact / 20);
+    view.pitchKick -= 0.05 * strength;
+    if (window.GameAudio) GameAudio.land(strength);
+    if (impact > HARD_LANDING && window.WorldFX) WorldFX.ring(camera.position.x, camera.position.z, 0x00ffcc, 2.2);
+}
+
+function playerJump() {
+    if (state.isJumping || state.isPaused) return;
+    state.isJumping = true; state.yVelocity = 9.5;
+    if (window.GameAudio) GameAudio.jump();
 }
 
 var _dashDir = new THREE.Vector3(); // scratch: el dash reutiliza el mismo vector
@@ -684,6 +751,10 @@ var _dashDir = new THREE.Vector3(); // scratch: el dash reutiliza el mismo vecto
 function performDash() {
     var now = Date.now(); if (now - state.lastDashTime < state.dashCooldown) return;
     state.lastDashTime = now; notifyTutorial('dash');
+    view.fovKick = DASH_FOV_KICK;
+    flashOverlay('dash-fx', 380);
+    if (window.GameAudio) GameAudio.dash();
+    if (window.WorldFX) WorldFX.ring(camera.position.x, camera.position.z, 0x00ffcc, 2.6);
     // El setInterval dura 200 ms y el enfriamiento son 5 s: no puede solaparse
     // con otro dash, asi que el vector global es seguro aqui.
     var dir = _dashDir; camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
@@ -720,7 +791,10 @@ function handleMovement(delta) {
         move.normalize().multiplyScalar(spd * delta);
         camera.position.add(move);
         input.moving = true;
+        var stepsBefore = Math.floor(input.bobPhase / Math.PI);
         input.bobPhase += delta * (input.sprinting ? 12 : 9);
+        // Media vuelta de balanceo = un pie en el suelo
+        if (!state.isJumping && window.GameAudio && Math.floor(input.bobPhase / Math.PI) !== stepsBefore) GameAudio.footstep(input.sprinting);
         arms.position.y = -0.5 + Math.sin(input.bobPhase) * 0.025;
     } else { input.moving = false; input.sprinting = false; }
     clampPos();
@@ -741,18 +815,121 @@ function triggerShake(power) {
 
 var SHAKE_BY_WEAPON = { pistol:0.008, rifle:0.005, shotgun:0.026, gg_bat:0.03, gg_pistol:0.008, gg_revolver:0.012, gg_smg:0.005, gg_rifle:0.006, gg_shotgun:0.026, gg_sniper:0.02, gg_minigun:0.004, gg_rpg:0.05, gg_golden:0.04 };
 
+// Sensacion de camara: el campo de vision se abre al correr y en el dash, la
+// vista se inclina al moverse de lado, cabecea al aterrizar y cae al morir.
+var BASE_FOV = camera.fov;
+var SPRINT_FOV = 5, STAR_FOV = 6, DASH_FOV_KICK = 14;
+var STRAFE_ROLL = 0.022;
+var DEATH_FALL_SECONDS = 0.9, DEATH_EYE_HEIGHT = 0.7, DEATH_ROLL = 1.15;
+var view = { fovKick: 0, pitchKick: 0, roll: 0, death: 0, deathFromY: 0, deathFloorY: 0 };
+
+function resetView() {
+    view.fovKick = view.pitchKick = view.roll = view.death = 0;
+    camera.fov = BASE_FOV; camera.updateProjectionMatrix();
+}
+
+function startDeathFall() {
+    view.death = 0.0001;
+    view.deathFromY = camera.position.y;
+    view.deathFloorY = groundHeightAt(camera.position.x, camera.position.z, PLAYER_RADIUS, camera.position.y - PLAYER_HEIGHT);
+}
+
+function updateViewFeel(delta) {
+    var playing = !state.isPaused;
+    var targetFov = BASE_FOV + view.fovKick
+        + (playing && input.sprinting ? SPRINT_FOV : 0) + (playing && state.starActive ? STAR_FOV : 0);
+    var fov = camera.fov + (targetFov - camera.fov) * Math.min(1, delta * 9);
+    if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    view.fovKick *= Math.pow(0.01, delta);
+    view.pitchKick *= Math.pow(0.0005, delta);
+
+    var strafe = playing ? ((input.keys['KeyD'] ? 1 : 0) - (input.keys['KeyA'] ? 1 : 0) + _tMov.x) : 0;
+    view.roll += (-strafe * STRAFE_ROLL - view.roll) * Math.min(1, delta * 8);
+
+    if (view.death > 0 && view.death < 1) {
+        view.death = Math.min(1, view.death + delta / DEATH_FALL_SECONDS);
+        var k = view.death * view.death;
+        camera.position.y = view.deathFromY + (view.deathFloorY + DEATH_EYE_HEIGHT - view.deathFromY) * k;
+    }
+}
+
 function applyShake(delta) {
     camera.rotation.order = 'YXZ';
+    var pitch = input.pitch + view.pitchKick;
     if (shakePow > 0.0004) {
-        camera.rotation.y = input.yaw   + (Math.random() - 0.5) * shakePow;
-        camera.rotation.x = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01,
-            input.pitch + (Math.random() - 0.5) * shakePow * 0.55));
+        camera.rotation.y = input.yaw + (Math.random() - 0.5) * shakePow;
+        pitch += (Math.random() - 0.5) * shakePow * 0.55;
         shakePow *= Math.pow(0.72, delta * 60); // independiente de los FPS
     } else {
         camera.rotation.y = input.yaw;
-        camera.rotation.x = input.pitch;
         shakePow = 0;
     }
+    camera.rotation.x = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, pitch));
+    camera.rotation.z = view.roll + view.death * view.death * DEATH_ROLL;
+}
+
+// Reinicia la animacion CSS de una capa de pantalla completa (dash, etc.).
+function flashOverlay(id, ms) {
+    var el = _el(id);
+    if (!el) return;
+    el.classList.remove('hidden');
+    if (el.animate) el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
+    clearTimeout(el._t); el._t = setTimeout(function() { el.classList.add('hidden'); }, ms);
+}
+
+// ───────────────────────────────────────────────────── NUMEROS DE DAÑO ──────
+// Los impactos del mismo frame sobre el mismo enemigo (perdigones, explosion)
+// se suman en una sola cifra. Los nodos se reutilizan: nada de crear y borrar
+// elementos por disparo.
+var DAMAGE_POPUPS = 10;
+var _damageNodes = [], _damageCursor = 0;
+var _damageQueue = [], _damageQueued = 0;
+var _screenPos = new THREE.Vector3();
+var HEAD_HEIGHT = 3.15; // altura local de la coronilla del modelo
+
+function queueDamageNumber(grp, amount, isCrit) {
+    for (var i = 0; i < _damageQueued; i++) {
+        var pending = _damageQueue[i];
+        if (pending.grp === grp) { pending.amount += amount; pending.crit = pending.crit || isCrit; return; }
+    }
+    if (_damageQueued >= DAMAGE_POPUPS) return;
+    var slot = _damageQueue[_damageQueued] || (_damageQueue[_damageQueued] = {});
+    slot.grp = grp; slot.amount = amount; slot.crit = isCrit;
+    _damageQueued++;
+}
+
+function damageNode() {
+    var el = _damageNodes[_damageCursor];
+    if (!el) {
+        el = _damageNodes[_damageCursor] = document.createElement('div');
+        _el('ui-container').appendChild(el);
+    }
+    _damageCursor = (_damageCursor + 1) % DAMAGE_POPUPS;
+    return el;
+}
+
+function flushDamageNumbers() {
+    for (var i = 0; i < _damageQueued; i++) {
+        var pending = _damageQueue[i], grp = pending.grp;
+        var type = grp.userData.type || ENEMY_TYPES.recluta;
+        _screenPos.set(grp.position.x, HEAD_HEIGHT * type.h, grp.position.z).project(camera);
+        pending.grp = null;
+        if (_screenPos.z > 1) continue; // detras de la camara
+        var el = damageNode();
+        el.className = 'dmg-number' + (pending.crit ? ' crit' : '');
+        el.textContent = Math.max(1, Math.round(pending.amount));
+        el.style.left = ((_screenPos.x * 0.5 + 0.5) * 100 + (Math.random() - 0.5) * 3) + '%';
+        el.style.top  = ((-_screenPos.y * 0.5 + 0.5) * 100) + '%';
+        if (el.animate) {
+            el.animate([
+                { opacity: 0, transform: 'translate(-50%, -20%) scale(0.6)' },
+                { opacity: 1, transform: 'translate(-50%, -70%) scale(1.15)', offset: 0.18 },
+                { opacity: 1, transform: 'translate(-50%, -110%) scale(1)', offset: 0.6 },
+                { opacity: 0, transform: 'translate(-50%, -170%) scale(0.9)' }
+            ], { duration: 750, easing: 'ease-out', fill: 'forwards' });
+        }
+    }
+    _damageQueued = 0;
 }
 
 // ──────────────────────────────────────────────────────────── UI ─────────────
@@ -991,6 +1168,7 @@ function updateUI() {
     _css('health-bar', 'width', hp + '%');
     _css('health-bar', 'background', hp > 60 ? '#00ff88' : hp > 30 ? '#ffcc00' : '#ff2200');
     _text('health-label', Math.round(hp));
+    _hidden('lowhp-overlay', !(hp > 0 && hp <= LOW_HEALTH) || inMenu);
 
     if (state.gameMode === 'gungame') {
         _hidden('money-row', true);
@@ -1063,6 +1241,7 @@ var ENEMY_MAT_TYPE = (function() {
 
 function createHuman(type) {
     var shadows = getQuality().enemyShadows;
+    if (window.EnemyModels) return EnemyModels.create(type, shadows);
     var g = new THREE.Group();
     var head = new THREE.Mesh(ENEMY_GEO.head, ENEMY_MAT_HEAD);
     head.position.y = 2.7; head.castShadow = shadows; head.userData = { mult: 2.5 }; g.add(head);
@@ -1094,20 +1273,35 @@ function spawnEnemy(typeKey, baseHealth, baseSpeed) {
         type: type, health: hp, maxHealth: hp,
         speed: baseSpeed * type.speed, lastAttack: 0,
         walkPhase: Math.random()*Math.PI*2,
+        voiceAt: Date.now() + 1500 + Math.random() * 4000,
         orbitDir: Math.random() < 0.5 ? -1 : 1,
         slideT: 0, slideN: { x: 0, z: 0 }, knock: { x: 0, z: 0 }
     };
     scene.add(e); enemies.push(e);
+    if (window.WorldFX) WorldFX.column(e.position.x, e.position.z, type.color, 3 * type.h);
+    if (window.GameAudio) { locateSound(e.position.x, e.position.z); GameAudio.enemySpawn(_ear.pan, _ear.dist); }
     noteEnemySeen(type);
     if (type.boss) showBossBar(e);
     return e;
 }
 
-function removeEnemy(eg){var i=enemies.indexOf(eg);if(i!==-1)enemies.splice(i,1);scene.remove(eg);}
-function clearEnemies() {enemies.forEach(function(e){scene.remove(e);});enemies.length=0;hideBossBar();}
+// Al morir, el enemigo sale de la lista (deja de bloquear balas y de contar
+// para la oleada) pero su cuerpo se queda en escena hasta acabar la caida.
+function removeEnemy(eg) {
+    var i = enemies.indexOf(eg);
+    if (i !== -1) enemies.splice(i, 1);
+    if (window.EnemyModels && eg.rig) EnemyModels.kill(eg, eg.userData.hitDirX || 0, eg.userData.hitDirZ || 0);
+    else scene.remove(eg);
+}
+function clearEnemies() {
+    enemies.forEach(function(e) { scene.remove(e); if (window.EnemyModels) EnemyModels.discard(e); });
+    enemies.length = 0;
+    if (window.EnemyModels) EnemyModels.clear();
+    hideBossBar();
+}
 
 function startWave(wave) {
-    state.wave=wave; state.kills=0; clearEnemies(); playWaveSound(); showWaveAnnounce('OLEADA '+wave);
+    state.wave=wave; state.kills=0; clearEnemies(); playWaveSound(wave % 5 === 0); showWaveAnnounce('OLEADA '+wave);
     var cfg=waveConfig(wave);
     var mod=waveModifier(wave);
     applyWaveModifier(mod);
@@ -1136,6 +1330,28 @@ function tickGunGameSpawn(delta) {
 }
 
 var _aiDir = new THREE.Vector3(); // scratch: evita un new Vector3 por enemigo y frame
+
+var STOMP_RANGE = 22;  // a esta distancia se empiezan a notar los pasos pesados
+var VOICE_RANGE = 48;
+
+// Los pesos pesados hacen temblar el suelo al acercarse: avisan sin mirar.
+function enemyStomp(e, dist) {
+    var closeness = 1 - dist / STOMP_RANGE;
+    triggerShake(0.012 * closeness);
+    if (window.GameAudio) { locateSound(e.position.x, e.position.z); GameAudio.land(0.25 + 0.6 * closeness); }
+}
+
+// Cada arquetipo "habla" con su cadencia. El Zumbador zumba mas seguido
+// cuanto mas cerca esta: es su cuenta atras.
+function enemySpeak(e, t, dist, now) {
+    var gap = t.voice || ENEMY_TYPES.recluta.voice;
+    var wait = gap[0] + Math.random() * (gap[1] - gap[0]);
+    if (t.explode) wait *= Math.max(0.3, Math.min(1, dist / 26));
+    e.userData.voiceAt = now + wait * 1000;
+    if (dist > VOICE_RANGE || !window.GameAudio) return;
+    locateSound(e.position.x, e.position.z);
+    GameAudio.enemyVoice(t.key, _ear.pan, _ear.dist);
+}
 
 function updateEnemyAI(delta) {
     delta *= enemyTimeScale();
@@ -1182,11 +1398,16 @@ function updateEnemyAI(delta) {
                 e.userData.slideN.x = _colN.x; e.userData.slideN.z = _colN.z;
                 e.userData.slideT = 0.6;
             }
+            var stepsBefore = Math.floor(e.userData.walkPhase / Math.PI);
             e.userData.walkPhase += delta * (t.behavior === 'orbit' ? 11 : 7);
             var wp=e.userData.walkPhase;
-            if(e.children[2])e.children[2].rotation.x= Math.sin(wp)*0.35;
-            if(e.children[3])e.children[3].rotation.x=-Math.sin(wp)*0.35;
+            if (t.stomp && dist < STOMP_RANGE && Math.floor(wp / Math.PI) !== stepsBefore) enemyStomp(e, dist);
+            if (!e.rig) {
+                if(e.children[2])e.children[2].rotation.x= Math.sin(wp)*0.35;
+                if(e.children[3])e.children[3].rotation.x=-Math.sin(wp)*0.35;
+            }
         }
+        if (e.rig) EnemyModels.animate(e, delta, dist > reach, dist);
         // Separacion: los enemigos no se apilan en el mismo punto
         for (var j = i - 1; j >= 0; j--) {
             var o = enemies[j], ot = o.userData.type || ENEMY_TYPES.recluta;
@@ -1208,8 +1429,11 @@ function updateEnemyAI(delta) {
             resolveCircle(e.position, t.radius, 0);
         }
         e.lookAt(camera.position.x, e.position.y, camera.position.z);
+        if (now > e.userData.voiceAt) enemySpeak(e, t, dist, now);
         if (dist < reach + 0.8 && now - e.userData.lastAttack > cd) {
             e.userData.lastAttack = now;
+            if (e.rig) EnemyModels.attack(e);
+            if (window.GameAudio) { locateSound(e.position.x, e.position.z); GameAudio.enemyAttack(t.key, _ear.pan, _ear.dist); }
             takeDamage(Math.round(dmg * t.dmg));
         }
     }
@@ -1323,6 +1547,7 @@ function spawnExplosion(x, z, radius, color) {
     mesh.scale.setScalar(0.4);
     scene.add(mesh);
     explosions.push({ mesh: mesh, mat: mat, life: 0, radius: radius });
+    if (window.WorldFX) WorldFX.explosion(x, 1.2, z, radius, color);
 }
 
 // La esfera crece hasta el radio real del daño y se desvanece: el jugador
@@ -1391,7 +1616,14 @@ var PICKUP_MAT    = new THREE.MeshLambertMaterial({ color: 0x00ff55, emissive: 0
 var PICKUP_GEO_H  = new THREE.BoxGeometry(0.55, 0.14, 0.14);
 var PICKUP_GEO_V  = new THREE.BoxGeometry(0.14, 0.55, 0.14);
 
+var HEAL_COLOR = 0x00ff66, HEAL_HOVER = 0.9;
+
 function createHealthPickupMesh() {
+    if (window.WorldFX) {
+        var kit = WorldFX.medkit();
+        kit.add(WorldFX.beacon(HEAL_COLOR, HEAL_HOVER));
+        return kit;
+    }
     var g   = new THREE.Group();
     var mat = PICKUP_MAT;
     var hBar = new THREE.Mesh(PICKUP_GEO_H, mat);
@@ -1405,7 +1637,7 @@ function createHealthPickupMesh() {
 
 function spawnHealthPickup(x, z) {
     var pickup = createHealthPickupMesh();
-    pickup.position.set(x, 0.9, z);
+    pickup.position.set(x, HEAL_HOVER, z);
     pickup.userData = { phase: Math.random() * Math.PI * 2, spawnTime: Date.now() };
     scene.add(pickup);
     healthPickups.push(pickup);
@@ -1425,7 +1657,7 @@ function updateHealthPickups(delta) {
         var p = healthPickups[i];
         p.userData.phase += delta * 2.2;
         p.rotation.y     += delta * 1.8;
-        p.position.y      = 0.9 + Math.sin(p.userData.phase) * 0.18;
+        p.position.y      = HEAL_HOVER + Math.sin(p.userData.phase) * 0.18;
 
         if (now - p.userData.spawnTime > 18000) {
             scene.remove(p); healthPickups.splice(i, 1); continue;
@@ -1445,6 +1677,7 @@ function updateHealthPickups(delta) {
             } else {
                 showFloatingText('¡Salud completa!', '#88ff88', 24);
             }
+            collectFx(p.position, HEAL_COLOR);
             scene.remove(p); healthPickups.splice(i, 1);
             pickupNearNotified = false;
         }
@@ -1493,8 +1726,16 @@ function spawnPowerup(kind, x, z) {
     var mesh = new THREE.Mesh(POWERUP_GEO, POWERUP_MATS[kind]);
     mesh.position.set(x, 1.3, z);
     mesh.userData = { kind: kind, phase: Math.random() * 6.28, born: Date.now() };
+    if (window.WorldFX) mesh.add(WorldFX.beacon(POWERUPS[kind].color, 1.3));
     scene.add(mesh);
     powerups.push(mesh);
+}
+
+// Columna de chispas y onda en el suelo al recoger cualquier objeto.
+function collectFx(pos, color) {
+    if (!window.WorldFX) return;
+    WorldFX.column(pos.x, pos.z, color, 5);
+    WorldFX.ring(pos.x, pos.z, color, 3);
 }
 
 function clearPowerups() {
@@ -1516,8 +1757,9 @@ function updatePowerups(delta) {
         if (dx*dx + dz*dz < 6.25) {
             var def = POWERUPS[p.userData.kind];
             def.apply();
-            playStarSound();
+            playPowerupSound();
             showFloatingText(def.name, '#' + ('000000'+def.color.toString(16)).slice(-6), 34);
+            collectFx(p.position, def.color);
             scene.remove(p); powerups.splice(i, 1);
             updateUI();
         }
@@ -1575,12 +1817,15 @@ var STAR_GEO_RING = new THREE.TorusGeometry(0.65, 0.07, 8, 28);
 var STAR_MAT_CORE = new THREE.MeshLambertMaterial({ color: 0xFFD700, emissive: 0xFFAA00, emissiveIntensity: 1.8 });
 var STAR_MAT_RING = new THREE.MeshLambertMaterial({ color: 0xFFFF44, emissive: 0xFFFF00, emissiveIntensity: 1.4 });
 
+var STAR_COLOR = 0xFFD700, STAR_HOVER = 1.6;
+
 function spawnStar(x, z) {
     if (starGroup) return;
     starGroup = new THREE.Group();
 
-    var core = new THREE.Mesh(STAR_GEO_CORE, STAR_MAT_CORE);
+    var core = new THREE.Mesh(window.WorldFX ? WorldFX.starGeometry() : STAR_GEO_CORE, STAR_MAT_CORE);
     starGroup.add(core);
+    if (window.WorldFX) starGroup.add(WorldFX.beacon(STAR_COLOR, STAR_HOVER));
 
     var ring = new THREE.Mesh(STAR_GEO_RING, STAR_MAT_RING);
     ring.rotation.x = Math.PI / 2.8; ring.name = 'ring';
@@ -1620,6 +1865,7 @@ function updateStarPickup(delta) {
     var dx = starGroup.position.x - camera.position.x;
     var dz = starGroup.position.z - camera.position.z;
     if (dx * dx + dz * dz < 6.25) {
+        collectFx(starGroup.position, STAR_COLOR);
         removeStar();
         state.starActive  = true;
         state.starEndTime = Date.now() + 8000;
@@ -1675,6 +1921,7 @@ function onEnemyKilled(eg) {
     var type = eg.userData.type || ENEMY_TYPES.recluta;
     if (type.explode) detonate(eg);
     if (type.boss) { hideBossBar(); triggerShake(0.06); playGGWinSound(); }
+    if (window.GameAudio) { locateSound(pos.x, pos.z); GameAudio.enemyDeath(type.key, _ear.pan, _ear.dist); }
     removeEnemy(eg);
     state.kills++; state.totalKills++;
     bpTrack('kill', { weapon: state.currentWeapon, headshot: (eg.userData.lastMult || 1) >= 2, enemy: type.key, boss: !!type.boss, mode: state.gameMode });
@@ -1694,6 +1941,7 @@ function onEnemyKilled(eg) {
         else if (Math.random() < 0.10) spawnPowerup(Math.random() < 0.5 ? 'ammo' : 'slowmo', pos.x, pos.z);
         if (enemies.length === 0) {
             showWaveAnnounce('¡OLEADA ' + state.wave + ' COMPLETADA!');
+            if (window.GameAudio) GameAudio.waveClear();
             bpTrack('wave', { wave: state.wave });
             setTimeout(function(){ startWave(state.wave + 1); }, 3000);
         }
@@ -1714,6 +1962,10 @@ function damageEnemy(grp, dmg, mult, dirX, dirZ, push) {
     if (grp.userData.health <= 0) return false;
     grp.userData.health -= dmg * mult;
     grp.userData.lastMult = mult;
+    grp.userData.hitDirX = dirX; grp.userData.hitDirZ = dirZ;
+    if (grp.rig) EnemyModels.hit(grp, mult);
+    queueDamageNumber(grp, dmg * mult, mult >= 2);
+    if (window.GameAudio) { locateSound(grp.position.x, grp.position.z); GameAudio.enemyHit(_ear.pan, _ear.dist); }
     if (push && grp.userData.knock) {
         var k = push * 6 / Math.max(0.6, (grp.userData.type || ENEMY_TYPES.recluta).w);
         grp.userData.knock.x += dirX * k; grp.userData.knock.z += dirZ * k;
@@ -1766,10 +2018,22 @@ function castBullet(id, b, dmg) {
     return { hit: hitAny, headshot: headshot };
 }
 
+// Un enemigo articulado son diez mallas: se descarta entero si el rayo ni roza
+// la esfera que lo envuelve, antes de probarlo pieza por pieza. Requiere que
+// raycaster.set() se haya llamado antes que shootTargets().
+var ENEMY_BOUND_RADIUS = 2.6, ENEMY_BOUND_CENTER = 1.6;
+var _boundCenter = new THREE.Vector3();
+function rayNearEnemy(e) {
+    var type = e.userData.type || ENEMY_TYPES.recluta;
+    var radius = ENEMY_BOUND_RADIUS * Math.max(type.w, type.h);
+    _boundCenter.set(e.position.x, ENEMY_BOUND_CENTER * type.h, e.position.z);
+    return raycaster.ray.distanceSqToPoint(_boundCenter) <= radius * radius;
+}
+
 var _targets = [];
 function shootTargets() {
     _targets.length = 0;
-    for (var i = 0; i < enemies.length; i++) _targets.push(enemies[i]);
+    for (var i = 0; i < enemies.length; i++) if (rayNearEnemy(enemies[i])) _targets.push(enemies[i]);
     for (var j = 0; j < coverMeshes.length; j++) _targets.push(coverMeshes[j]);
     _targets.push(ground);
     return _targets;
@@ -1894,6 +2158,7 @@ function reloadWeapon() {
     if(need<=0||state.reserves[id]<=0)return;
     state.isReloading=true; notifyTutorial('reload');
     document.getElementById('reload-indicator').classList.remove('hidden'); playReloadSound(id);
+    if (window.WeaponFX && WeaponFX.reload) WeaponFX.reload(weaponReload(id));
     setTimeout(function(){
         if(!state.isReloading)return;
         var take=Math.min(need,state.reserves[id]);
@@ -1908,6 +2173,7 @@ function switchWeapon(id) {
     if(state.currentWeapon===id)return;
     state.currentWeapon=id; state.isReloading=false; document.getElementById('reload-indicator').classList.add('hidden');
     createWeaponModel(id); updateUI();
+    if (window.GameAudio) GameAudio.equip();
 }
 
 function buyWeapon(id) {
@@ -1915,14 +2181,14 @@ function buyWeapon(id) {
     var w=WEAPONS[id]; if(state.money<w.price||state.owned[id])return;
     state.money-=w.price; state.owned[id]=true; state.currentWeapon=id;
     state.ammo[id]=weaponClip(id); state.reserves[id]=w.maxAmmo-w.clip;
-    createWeaponModel(id); updateUI();
+    createWeaponModel(id); updateUI(); playBuySound();
 }
 
 function takeDamage(amount) {
     if(state.isGameOver)return;
     if(state.starActive)return; // invulnerable!
     state.health=Math.max(0,state.health-amount); playDamageSound(); showDamageOverlay(); triggerShake(0.042);
-    if(state.health<=0){playDeathSound();state.isPaused=state.isGameOver=true;document.exitPointerLock();triggerGameOver();}
+    if(state.health<=0){playDeathSound();startDeathFall();state.isPaused=state.isGameOver=true;document.exitPointerLock();triggerGameOver();}
     else updateUI();
 }
 
@@ -2060,7 +2326,7 @@ function startGame() {
     resetState(); clearEnemies(); clearHealthPickups(); removeStar(); clearPowerups(); clearRockets();
     starAutoTimer = 60; ggSpawnTimer = 0;
     camera.position.set(0, PLAYER_HEIGHT, 5); camera.rotation.set(0,0,0);
-    input.pitch = 0; input.yaw = 0;
+    input.pitch = 0; input.yaw = 0; resetView();
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('reload-indicator').classList.add('hidden');
     document.getElementById('pause-menu').classList.add('hidden');
@@ -2083,7 +2349,7 @@ function startGunGameMode() {
     resetState(); clearEnemies(); clearHealthPickups(); removeStar(); clearPowerups(); clearRockets();
     starAutoTimer = 60; ggSpawnTimer = 3.5;
     camera.position.set(0, PLAYER_HEIGHT, 5); camera.rotation.set(0,0,0);
-    input.pitch = 0; input.yaw = 0;
+    input.pitch = 0; input.yaw = 0; resetView();
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('reload-indicator').classList.add('hidden');
     document.getElementById('pause-menu').classList.add('hidden');
@@ -2141,6 +2407,8 @@ function syncOptionsUI() {
     var fpsBtn = document.getElementById('opt-fps');
     if (fpsBtn) { fpsBtn.textContent = settings.showFps ? 'ON' : 'OFF'; fpsBtn.className = 'toggle-btn ' + (settings.showFps ? 'on' : 'off'); }
     if (typeof refreshQualityBtn === 'function') refreshQualityBtn();
+    var musicBtn = document.getElementById('opt-music');
+    if (musicBtn) { musicBtn.textContent = settings.music ? 'ON' : 'OFF'; musicBtn.className = 'toggle-btn ' + (settings.music ? 'on' : 'off'); }
     document.getElementById('ch-preview-v').style.background = settings.crosshairColor;
     document.getElementById('ch-preview-h').style.background = settings.crosshairColor;
 }
@@ -2164,6 +2432,14 @@ if (qb) qb.addEventListener('click', function() {
     var i = QUALITY_ORDER.indexOf(settings.quality);
     settings.quality = QUALITY_ORDER[(i + 1) % QUALITY_ORDER.length];
     refreshQualityBtn(); applyQuality(); saveSettings(); playMenuClick();
+});
+var musicToggle = document.getElementById('opt-music');
+if (musicToggle) musicToggle.addEventListener('click', function() {
+    settings.music = !settings.music;
+    this.textContent = settings.music ? 'ON' : 'OFF';
+    this.className = 'toggle-btn ' + (settings.music ? 'on' : 'off');
+    if (window.GameAudio) GameAudio.setMusicEnabled(settings.music);
+    saveSettings(); playMenuClick();
 });
 var fb = document.getElementById('opt-fps');
 if (fb) fb.addEventListener('click', function() {
@@ -2203,7 +2479,7 @@ document.addEventListener('pointerlockchange', function(){
 document.addEventListener('keydown', function(e) {
     input.keys[e.code] = true;
     if (inMenu || state.isGameOver) return;
-    if (e.code==='Space'  && !state.isJumping && !state.isPaused) { state.isJumping=true; state.yVelocity=9.5; }
+    if (e.code==='Space') playerJump();
     if (e.code==='KeyE'   && !state.isPaused)                      performDash();
     if (e.code==='KeyR'   && !state.isPaused && !state.isReloading) reloadWeapon();
     if (e.code==='KeyB'   && !state.isPaused && !state.isBuying && state.gameMode!=='gungame') openShop();
@@ -2265,6 +2541,9 @@ function animate() {
         }
     }
 
+    if (window.WorldFX) WorldFX.update(delta);
+    updateAudioMood(delta);
+
     if (inMenu) {
         menuCamAngle += delta * 0.14;
         camera.position.x = Math.sin(menuCamAngle) * 12;
@@ -2276,6 +2555,7 @@ function animate() {
     }
 
     applyPhysics(delta);
+    updateViewFeel(delta);
     applyShake(delta);
     if (window.WeaponFX) WeaponFX.update(delta, !!input.moving, !!input.sprinting);
     if (window.GunAudio && GunAudio.minigunSpin) GunAudio.minigunSpin(state.currentWeapon === 'gg_minigun' && !!input.mouseDown && !state.isPaused);
@@ -2285,10 +2565,12 @@ function animate() {
         if (input.mouseDown && input.isLocked && !state.isBuying && ballistics(state.currentWeapon).auto) fireWeapon();
         updateRockets(delta);
         updateEnemyAI(delta);
+        if (window.EnemyModels) EnemyModels.update(delta);
         updateStarPickup(delta);
         updatePowerups(delta);
         tickStarPower();
         tickBuffs();
+        flushDamageNumbers();
 
         if (state.gameMode === 'normal') {
             updateHealthPickups(delta);
